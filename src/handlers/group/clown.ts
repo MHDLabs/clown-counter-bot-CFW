@@ -5,7 +5,7 @@ import { and, desc, eq, sql } from "drizzle-orm";
 import type { CommandHandler, Handler, MessageHandler } from "@/handlers";
 import type { BotContext } from "@/lib/bot";
 
-import { db, schema } from "@/db";
+import { schema } from "@/db";
 
 import { isClownCall } from "./clown-filter";
 
@@ -40,71 +40,61 @@ function getData(ctx: BotContext): Data | null {
   };
 }
 
-/** Race-free cooldown check: returns the wait in minutes, or 0 when allowed. */
-async function waitMinutes({ group: { id }, voter }: Data): Promise<number> {
-  const group = await db.query.groups.findFirst({
+async function waitMinutes(ctx: BotContext, data: Data): Promise<number> {
+  const group = await ctx.db.query.groups.findFirst({
     columns: { cooldown: true },
-    where: (f, o) => o.eq(f.id, id),
+    where: (f, o) => o.eq(f.id, String(data.group.id)),
   });
-
   const cooldown = group?.cooldown ?? DEFAULT_COOLDOWN;
-
-  const [last] = await db
+  const last = await ctx.db
     .select({ votedAt: schema.clownVotes.votedAt })
     .from(schema.clownVotes)
-    .where(and(eq(schema.clownVotes.groupId, id), eq(schema.clownVotes.voterId, voter.id)))
+    .where(
+      and(eq(schema.clownVotes.groupId, String(data.group.id)), eq(schema.clownVotes.voterId, String(data.voter.id))),
+    )
     .orderBy(desc(schema.clownVotes.votedAt))
     .limit(1);
-
-  if (!last) return 0;
-
-  const diff = Date.now() - last.votedAt.getTime();
-
-  return diff > cooldown ? 0 : Math.ceil((cooldown - diff) / 1000 / 60);
+  if (!last[0]) return 0;
+  return Math.max(0, Math.ceil((cooldown - (Date.now() - last[0].votedAt.getTime())) / 60_000));
 }
 
 async function voteHandler(ctx: BotContext, quantity: -1 | 1) {
   const data = getData(ctx);
   if (!data) return;
-
   const { messageId, group, voter, clown } = data;
-
   const prefix = quantity > 0 ? "cmd_clown" : "cmd_unclown";
-
   const reply = (text: string) => ctx.reply(text, { reply_parameters: { message_id: messageId, chat_id: group.id } });
-
-  const rejection =
-    clown.id === ctx.me.id ? "is_me" : clown.is_bot ? "is_bot" : voter.id === clown.id ? "is_you" : null;
-
+  const rejection = clown.id === ctx.meId ? "is_me" : clown.is_bot ? "is_bot" : voter.id === clown.id ? "is_you" : null;
   if (rejection) return await reply(ctx.t(`${prefix}_${rejection}`));
-
-  // Upsert both users in one statement, and the group concurrently.
   await Promise.all([
-    db
+    ctx.db
       .insert(schema.users)
       .values([
-        { id: voter.id, name: voter.name },
-        { id: clown.id, name: clown.name },
+        { id: String(voter.id), name: voter.name },
+        { id: String(clown.id), name: clown.name },
       ])
       .onConflictDoUpdate({ target: schema.users.id, set: { name: sql`excluded.name` } }),
-    db
+    ctx.db
       .insert(schema.groups)
-      .values({ id: group.id, name: group.name })
+      .values({ id: String(group.id), name: group.name })
       .onConflictDoUpdate({ target: schema.groups.id, set: { name: group.name } }),
   ]);
-
-  const waitMin = await waitMinutes(data);
-
-  if (waitMin > 0) {
-    return await reply(ctx.t(`${prefix}_wait`, { waitMin }));
-  }
-
-  await db.insert(schema.clownVotes).values({
-    groupId: group.id,
-    voterId: voter.id,
-    clownId: clown.id,
-    quantity,
+  // A single conditional INSERT is atomic in SQLite: competing webhook requests cannot both pass.
+  const now = Date.now();
+  const cooldown = await ctx.db.query.groups.findFirst({
+    columns: { cooldown: true },
+    where: (f, o) => o.eq(f.id, String(group.id)),
   });
+  const duration = cooldown?.cooldown ?? DEFAULT_COOLDOWN;
+  const inserted = await ctx.db.run(sql`INSERT INTO clown_votes (voter_id, clown_id, group_id, voted_at, quantity)
+    SELECT ${String(voter.id)}, ${String(clown.id)}, ${String(group.id)}, ${now}, ${quantity}
+    WHERE NOT EXISTS (SELECT 1 FROM clown_votes WHERE group_id = ${String(group.id)}
+      AND voter_id = ${String(voter.id)} AND voted_at > ${now - duration})`);
+
+  if (inserted.meta.changes === 0) {
+    const waitMin = await waitMinutes(ctx, data);
+    return await reply(ctx.t(`${prefix}_wait`, { waitMin: Math.max(1, waitMin) }));
+  }
 
   return await reply(ctx.t(`${prefix}`, { clown: clown.name, voter: voter.name }));
 }

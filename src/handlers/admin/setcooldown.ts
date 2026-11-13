@@ -1,7 +1,8 @@
 import type { CommandHandler } from "@/handlers";
 import type { BotContext } from "@/lib/bot";
 
-import { db, schema } from "@/db";
+import { schema } from "@/db";
+import { isAdmin } from "@/lib/bot";
 
 const MIN_COOLDOWN = 0;
 const MAX_COOLDOWN = 60;
@@ -9,6 +10,7 @@ const MAX_COOLDOWN = 60;
 async function setCooldown(ctx: BotContext) {
   const { msg } = ctx;
   if (!msg) return;
+  if (!(await isAdmin(ctx))) return await ctx.replyTo(msg, ctx.t("cmd_admin_only"));
 
   const args = msg.text?.split(/\s+/).slice(1).join(" ").trim();
 
@@ -34,9 +36,9 @@ async function setCooldown(ctx: BotContext) {
 
   const cooldownMs = minutes * 60 * 1000;
 
-  await db
+  await ctx.db
     .insert(schema.groups)
-    .values({ id: msg.chat.id, name: msg.chat.title, cooldown: cooldownMs })
+    .values({ id: String(msg.chat.id), name: msg.chat.title, cooldown: cooldownMs })
     .onConflictDoUpdate({
       target: [schema.groups.id],
       set: { name: msg.chat.title, cooldown: cooldownMs },

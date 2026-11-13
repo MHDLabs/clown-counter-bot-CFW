@@ -1,21 +1,10 @@
 import type { BotError } from "grammy";
 
-import { GrammyError, HttpError } from "grammy";
+import { GrammyError } from "grammy";
 
 import type { BotContext } from ".";
 
 export function errorHandler(err: BotError<BotContext>) {
-  const logErr = console.error;
-
-  logErr(`Error while handling update ${err.ctx.update.update_id}:`);
-
-  const e = err.error;
-
-  if (e instanceof GrammyError) {
-    logErr("Error in request:", e.description);
-  } else if (e instanceof HttpError) {
-    logErr("Could not contact Telegram:", e);
-  } else {
-    logErr("Unknown error:", e);
-  }
+  if (err.error instanceof GrammyError) console.error("Telegram update failed:", err.error.description);
+  else console.error("Telegram update failed.");
 }

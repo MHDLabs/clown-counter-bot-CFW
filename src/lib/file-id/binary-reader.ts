@@ -1,15 +1,12 @@
 export class BinaryReader {
-  private readonly buffer: Buffer;
   private pos = 0;
 
-  constructor(buffer: Buffer) {
-    this.buffer = buffer;
-  }
+  constructor(private readonly buffer: Uint8Array) {}
 
-  read(bytes: number): Buffer {
-    const chunk = this.buffer.subarray(this.pos, this.pos + bytes);
+  read(bytes: number): Uint8Array {
+    const part = this.buffer.subarray(this.pos, this.pos + bytes);
     this.pos += bytes;
-    return chunk;
+    return part;
   }
 
   skip(bytes: number): void {
@@ -17,20 +14,24 @@ export class BinaryReader {
   }
 
   readUInt32LE(): number {
-    const value = this.buffer.readUInt32LE(this.pos);
-    this.pos += 4;
-    return value;
+    return this.view().getUint32(this.advance(4), true);
   }
 
   readInt32LE(): number {
-    const value = this.buffer.readInt32LE(this.pos);
-    this.pos += 4;
-    return value;
+    return this.view().getInt32(this.advance(4), true);
   }
 
   readBigInt64LE(): bigint {
-    const value = this.buffer.readBigInt64LE(this.pos);
-    this.pos += 8;
-    return value;
+    return this.view().getBigInt64(this.advance(8), true);
+  }
+
+  private advance(n: number): number {
+    const p = this.pos;
+    this.pos += n;
+    return p;
+  }
+
+  private view(): DataView {
+    return new DataView(this.buffer.buffer, this.buffer.byteOffset, this.buffer.byteLength);
   }
 }

@@ -1,22 +1,31 @@
-import { I18n } from "@grammyjs/i18n";
-import { join } from "node:path";
+import type { FluentVariable } from "@fluent/bundle";
 
-import { findAvailablePath } from "@/lib/utils";
+import { FluentBundle, FluentResource } from "@fluent/bundle";
 
 import type { BotContext } from "..";
 
-export type { I18nFlavor } from "@grammyjs/i18n";
+import en from "../../../../locales/en.ftl";
+import fa from "../../../../locales/fa.ftl";
 
-export function i18nMiddleware(localesDirectory: string) {
-  return new I18n<BotContext>({ defaultLocale: "fa", directory: localesDirectory });
+export interface I18nFlavor {
+  t: (key: string, variables?: Record<string, FluentVariable>) => string;
+}
+const bundles = {
+  fa: new FluentBundle("fa"),
+  en: new FluentBundle("en"),
+};
+bundles.fa.addResource(new FluentResource(fa));
+bundles.en.addResource(new FluentResource(en));
+
+export function translate(locale: "en" | "fa", key: string, variables?: Record<string, FluentVariable>): string {
+  const message = bundles[locale].getMessage(key);
+  return message?.value ? bundles[locale].formatPattern(message.value, variables) : key;
 }
 
-export async function getLocalesDirectory(): Promise<string> {
-  const availablePath = await findAvailablePath([
-    join(import.meta.dirname, "locales"),
-    join(process.cwd(), "locales"), //
-  ]);
-  if (availablePath) return availablePath;
-
-  throw new Error(`Locales directory not found.`);
+export function i18nMiddleware() {
+  return async (ctx: BotContext, next: () => Promise<void>) => {
+    const locale = ctx.from?.language_code?.toLowerCase().startsWith("en") ? "en" : "fa";
+    ctx.t = (key, variables) => translate(locale, key, variables);
+    await next();
+  };
 }

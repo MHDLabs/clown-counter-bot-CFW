@@ -2,7 +2,6 @@ import type { MiddlewareFn } from "grammy";
 
 import type { BotContext, ClownCall } from "@/lib/bot";
 
-import { db } from "@/db";
 import { parseFileId } from "@/lib/file-id";
 
 const clownTexts = ["🤡", "دلقک"];
@@ -28,9 +27,9 @@ async function matchMediaCall(ctx: BotContext): Promise<ClownCall | null> {
   const chatId = ctx.chat?.id;
   if (!fileId || !chatId) return null;
 
-  const group = await db.query.groups.findFirst({
+  const group = await ctx.db.query.groups.findFirst({
     columns: MEDIA_COLUMNS,
-    where: (f, o) => o.eq(f.id, chatId),
+    where: (f, o) => o.eq(f.id, String(chatId)),
   });
 
   if (!group) return null;

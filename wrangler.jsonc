@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "clown-counter-bot",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-13",
+  "observability": { "enabled": true },
+  "rules": [{ "type": "Text", "globs": ["**/*.ftl"], "fallthrough": true }],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "clown-counter-db",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "drizzle",
+    },
+  ],
+  "vars": {},
+}

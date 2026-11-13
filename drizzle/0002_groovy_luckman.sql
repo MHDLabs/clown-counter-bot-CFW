@@ -1,1 +1,0 @@
-ALTER TABLE "clown_votes" ADD COLUMN "quantity" bigint DEFAULT 1 NOT NULL;

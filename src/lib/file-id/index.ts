@@ -14,7 +14,7 @@ export function parseFileId(raw: string): ParsedFileId {
   const typeId = normalizedTypeId;
   const dcId = reader.readUInt32LE();
 
-  let fileReference: Buffer | null = null;
+  let fileReference: Uint8Array | null = null;
 
   if (hasReference) {
     fileReference = unpackTlString(reader);
@@ -30,7 +30,7 @@ export function parseFileId(raw: string): ParsedFileId {
       hasReference,
       hasWebLocation,
       fileReference,
-      url: url.toString("utf8"),
+      url: new TextDecoder().decode(url),
       dcId,
       id: 0n,
       accessHash,

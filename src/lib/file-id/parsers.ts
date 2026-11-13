@@ -49,7 +49,7 @@ export function parsePhotosize(reader: BinaryReader, source: number, volumeId: b
         type: "thumbnail",
         volumeId,
         fileType: reader.readUInt32LE(),
-        thumbnailType: unpackNullTerminatedString(reader.read(4)).toString("utf8"),
+        thumbnailType: new TextDecoder().decode(unpackNullTerminatedString(reader.read(4))),
         locationLocalId: reader.readInt32LE(),
       };
 

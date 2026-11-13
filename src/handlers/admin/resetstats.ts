@@ -3,7 +3,7 @@ import { InlineKeyboard } from "grammy";
 import type { CallbackQueryHandler, CommandHandler } from "@/handlers";
 import type { BotContext } from "@/lib/bot";
 
-import { db, schema } from "@/db";
+import { schema } from "@/db";
 import { isAdmin } from "@/lib/bot";
 
 const RESET_CALLBACK = "resetstats";
@@ -14,6 +14,7 @@ const noData = `${RESET_CALLBACK}:no`;
 async function promptResetStats(ctx: BotContext) {
   const { msg } = ctx;
   if (!msg) return;
+  if (!(await isAdmin(ctx))) return await ctx.replyTo(msg, ctx.t("cmd_admin_only"));
 
   const keyboard = new InlineKeyboard()
     .text(ctx.t("cmd_resetstats_confirm_yes"), yesData)
@@ -36,9 +37,9 @@ async function confirmResetStats(ctx: BotContext) {
     });
   }
 
-  await db
+  await ctx.db
     .insert(schema.groups)
-    .values({ id: ctx.chat.id, name: ctx.chat.title, resetAt: new Date() })
+    .values({ id: String(ctx.chat.id), name: ctx.chat.title, resetAt: new Date() })
     .onConflictDoUpdate({
       target: schema.groups.id,
       set: { name: ctx.chat.title, resetAt: new Date() },

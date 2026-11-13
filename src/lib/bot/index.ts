@@ -1,9 +1,9 @@
 import type { Context, Middleware } from "grammy";
 
 import { CommandGroup } from "@grammyjs/commands";
-import { run } from "@grammyjs/runner";
 import { Bot as GrammyBot } from "grammy";
 
+import type { AppDb } from "@/db";
 import type { Handler } from "@/handlers";
 
 import type { I18nFlavor } from "./plugins/i18n";
@@ -19,9 +19,13 @@ export type BotContext = Context &
   I18nFlavor &
   ReplyToFlavor & {
     clownCall?: ClownCall;
+    db: AppDb;
+    meId: number;
   };
 
 interface BotOptions {
+  botId: number;
+  database: AppDb;
   plugins: Middleware<BotContext>[];
 }
 
@@ -32,11 +36,15 @@ export class Bot extends GrammyBot<BotContext> {
    */
   readonly commands = new CommandGroup<BotContext>();
 
-  constructor(token: string, { plugins }: BotOptions) {
+  constructor(token: string, { botId, database, plugins }: BotOptions) {
     super(token);
 
+    this.use(async (ctx, next) => {
+      ctx.db = database;
+      ctx.meId = botId;
+      await next();
+    });
     plugins.forEach((plugin) => this.use(plugin));
-    this.use(this.commands);
 
     this.api.config.use(autoRetryPlugin());
   }
@@ -45,16 +53,12 @@ export class Bot extends GrammyBot<BotContext> {
 
   /** Binds every handler passed in — see `applyHandlers`. */
   registerHandlers(...handlers: Handler[]): this {
-    applyHandlers(this, this.commands, handlers);
+    const commands = handlers.filter((handler) => handler.kind === "command");
+    const rest = handlers.filter((handler) => handler.kind !== "command");
+    applyHandlers(this, this.commands, commands);
+    this.use(this.commands);
+    applyHandlers(this, this.commands, rest);
     return this;
-  }
-
-  async run() {
-    await this.commands.setCommands(this);
-
-    run(this, {
-      runner: { fetch: { allowed_updates: ["message", "callback_query"] } },
-    });
   }
 }
 

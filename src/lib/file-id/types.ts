@@ -3,7 +3,7 @@ interface BaseParsedFileId {
   typeId: number;
   hasReference: boolean;
   hasWebLocation: boolean;
-  fileReference: Buffer | null;
+  fileReference: Uint8Array | null;
   dcId: number;
   id: bigint;
   accessHash: bigint;

@@ -10,7 +10,7 @@ describe("isInGroup", () => {
 
     await isInGroup({ chat: { type } } as BotContext, next);
 
-    expect(next).toHaveBeenCalledTimes(1);
+    expect(next).toHaveBeenCalledExactlyOnceWith();
   });
 
   it.each([

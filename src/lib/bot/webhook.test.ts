@@ -1,0 +1,74 @@
+import { webhookCallback } from "grammy";
+import { describe, expect, it } from "vitest";
+
+import type { AppDb } from "@/db";
+
+import { sourceHandler } from "@/handlers/static/source";
+import { Bot, i18nMiddleware, replyToMiddleware } from "@/lib/bot";
+
+const fakeBotInfo = {
+  id: 123456,
+  is_bot: true,
+  first_name: "Test Bot",
+  username: "test_counter_bot",
+  can_join_groups: true,
+  can_read_all_group_messages: false,
+  supports_inline_queries: false,
+  can_connect_to_business: false,
+  has_main_web_app: false,
+  has_topics_enabled: false,
+  allows_users_to_create_topics: false,
+  can_manage_bots: false,
+  supports_join_request_queries: false,
+};
+
+describe("grammY Cloudflare webhook", () => {
+  it("processes an authenticated /source update with a mocked Telegram API", async () => {
+    const bot = new Bot("123456:fake_token", {
+      botId: fakeBotInfo.id,
+      database: {} as AppDb,
+      plugins: [i18nMiddleware(), replyToMiddleware],
+    });
+    bot.registerHandlers(sourceHandler);
+    const calls: { method: string; payload: Record<string, unknown> }[] = [];
+    bot.api.config.use(async (_previous, method, payload) => {
+      calls.push({ method, payload });
+      const result =
+        method === "getMe"
+          ? fakeBotInfo
+          : method === "sendMessage"
+            ? {
+                message_id: 2,
+                date: 1,
+                chat: { id: 10, type: "private", first_name: "Test" },
+                text: String((payload as unknown as Record<string, unknown>)["text"]),
+              }
+            : true;
+      return { ok: true, result } as never;
+    });
+    const webhook = webhookCallback(bot, "cloudflare-mod", { secretToken: "test-webhook-secret" });
+    const response = await webhook(
+      new Request("https://bot.test/telegram", {
+        method: "POST",
+        headers: { "content-type": "application/json", "X-Telegram-Bot-Api-Secret-Token": "test-webhook-secret" },
+        body: JSON.stringify({
+          update_id: 1,
+          message: {
+            message_id: 1,
+            from: { id: 10, is_bot: false, first_name: "Test", language_code: "en" },
+            chat: { id: 10, type: "private", first_name: "Test" },
+            date: 1,
+            text: "/source",
+            entities: [{ offset: 0, length: 7, type: "bot_command" }],
+          },
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+
+    const sendMessage = calls.find((call) => call.method === "sendMessage");
+
+    expect(sendMessage?.payload["text"]).toContain("github.com/MHDLabs/clown-counter-bot-CFW");
+  });
+});

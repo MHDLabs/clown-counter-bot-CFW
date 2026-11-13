@@ -3,28 +3,28 @@ import { and, desc, eq, gte, sql } from "drizzle-orm";
 import type { CommandHandler } from "@/handlers";
 import type { BotContext } from "@/lib/bot";
 
-import { db, schema } from "@/db";
+import { schema } from "@/db";
 import { localizeDate } from "@/lib/date";
 
 async function groupStats(ctx: BotContext) {
   const { message } = ctx;
   if (!message) return;
 
-  const group = await db.query.groups.findFirst({
+  const group = await ctx.db.query.groups.findFirst({
     columns: { resetAt: true },
-    where: (f, o) => o.eq(f.id, message.chat.id),
+    where: (f, o) => o.eq(f.id, String(message.chat.id)),
   });
 
-  const conditions = [eq(schema.clownVotes.groupId, message.chat.id)];
+  const conditions = [eq(schema.clownVotes.groupId, String(message.chat.id))];
 
   if (group?.resetAt) {
     conditions.push(gte(schema.clownVotes.votedAt, group.resetAt));
   }
 
-  const clowns = await db
+  const clowns = await ctx.db
     .select({
       name: schema.users.name,
-      count: sql<number>`coalesce(sum(${schema.clownVotes.quantity}), 0)::int`,
+      count: sql<number>`coalesce(sum(${schema.clownVotes.quantity}), 0)`,
     })
     .from(schema.clownVotes)
     .leftJoin(schema.users, eq(schema.users.id, schema.clownVotes.clownId))

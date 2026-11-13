@@ -5,7 +5,7 @@ import type { CommandHandler } from "@/handlers";
 import type { BotContext } from "@/lib/bot";
 import type { GroupPatch } from "@/lib/utils";
 
-import { db } from "@/db";
+import { isAdmin } from "@/lib/bot";
 import { parseFileId } from "@/lib/file-id";
 import { saveGroup } from "@/lib/utils";
 
@@ -37,6 +37,7 @@ function createSetMediaHandler(spec: MediaSpec) {
   return async (ctx: BotContext) => {
     const { msg } = ctx;
     if (!msg) return;
+    if (!(await isAdmin(ctx))) return await ctx.replyTo(msg, ctx.t("cmd_admin_only"));
 
     const replyTo = msg.reply_to_message;
 
@@ -45,8 +46,8 @@ function createSetMediaHandler(spec: MediaSpec) {
     const rawFileId = spec.getFileId(replyTo);
     if (!rawFileId) return await ctx.replyTo(msg, ctx.t(`${spec.key}_invalid`));
 
-    const group = await db.query.groups.findFirst({
-      where: (f, o) => o.eq(f.id, msg.chat.id),
+    const group = await ctx.db.query.groups.findFirst({
+      where: (f, o) => o.eq(f.id, String(msg.chat.id)),
     });
 
     const existing = spec.getIds(group);
@@ -55,7 +56,7 @@ function createSetMediaHandler(spec: MediaSpec) {
 
     const updated = [...existing, parseFileId(rawFileId).id.toString()];
 
-    await saveGroup(msg.chat.id, msg.chat.title, { ...spec.apply(updated) });
+    await saveGroup(ctx.db, { chatId: msg.chat.id, name: msg.chat.title, patch: spec.apply(updated) });
 
     return await ctx.replyTo(msg, ctx.t(`${spec.key}_done`, { count: updated.length, max: spec.max }));
   };
@@ -65,6 +66,7 @@ function createRemoveMediaHandler(spec: MediaSpec) {
   return async (ctx: BotContext) => {
     const { msg } = ctx;
     if (!msg) return;
+    if (!(await isAdmin(ctx))) return await ctx.replyTo(msg, ctx.t("cmd_admin_only"));
 
     const replyTo = msg.reply_to_message;
 
@@ -73,8 +75,8 @@ function createRemoveMediaHandler(spec: MediaSpec) {
     const rawFileId = spec.getFileId(replyTo);
     if (!rawFileId) return await ctx.replyTo(msg, ctx.t(`${spec.key}_invalid`));
 
-    const group = await db.query.groups.findFirst({
-      where: (f, o) => o.eq(f.id, msg.chat.id),
+    const group = await ctx.db.query.groups.findFirst({
+      where: (f, o) => o.eq(f.id, String(msg.chat.id)),
     });
 
     const existing = spec.getIds(group);
@@ -86,7 +88,11 @@ function createRemoveMediaHandler(spec: MediaSpec) {
 
     const updated = existing.filter((id) => id !== fileId);
 
-    await saveGroup(msg.chat.id, msg.chat.title, { ...spec.apply(updated.length > 0 ? updated : null) });
+    await saveGroup(ctx.db, {
+      chatId: msg.chat.id,
+      name: msg.chat.title,
+      patch: spec.apply(updated.length > 0 ? updated : null),
+    });
 
     return await ctx.replyTo(msg, ctx.t(`${spec.key}_done`));
   };
