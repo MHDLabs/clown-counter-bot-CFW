@@ -19,7 +19,14 @@ bundles.en.addResource(new FluentResource(en));
 
 export function translate(locale: "en" | "fa", key: string, variables?: Record<string, FluentVariable>): string {
   const message = bundles[locale].getMessage(key);
-  return message?.value ? bundles[locale].formatPattern(message.value, variables) : key;
+  const text = message?.value ? bundles[locale].formatPattern(message.value, variables) : key;
+  if (locale !== "fa") return text;
+
+  const rightToLeftMark = "\u200f";
+  return text
+    .split("\n")
+    .map((line) => `${rightToLeftMark}${line.replace(/^\u200f+/, "")}`)
+    .join("\n");
 }
 
 export function i18nMiddleware() {

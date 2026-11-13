@@ -52,7 +52,7 @@ cmd_clown_is_bot = 🥰 عزیزم، اینی که می‌خوای دلقکش ک
 cmd_clown_is_you = دا؟ خودت رو می‌خوای دلقک کنی؟ چرا آخه؟ هم صحبت نیاز داری؟ کاری از دست ما بر میاد؟ 😭
 cmd_clown_usage = برای ثبت رأی، دستور /clown یا 🤡 را در پاسخ به پیام عضو گروه بفرستید.
 cmd_clown_wait = ⏳ هنوز زوده! { $waitMin } دقیقه دیگه می‌تونی دلقک کنی.
-cmd_clown = {"\u200F"}🤡 { $clown } توسط { $voter } دلقک شد!
+cmd_clown = 🤡 { $clown } توسط { $voter } دلقک شد!
 
 # Unclown command
 cmd_unclown_is_me = 🤫 در تلاشی سطح منو بیاری پایین؟ فکر کردی من کم دلقکم؟ من خیلی دلقکم!
@@ -64,7 +64,7 @@ cmd_unclown_is_you = 😂 دلقک واقعی تویی که فکر می‌کنی
 cmd_unclown_usage = برای کم‌کردن امتیاز، دستور /unclown یا 😇 را در پاسخ به پیام عضو گروه بفرستید.
 cmd_unclown_wait = ⏳ هنوز زوده! { $waitMin } دقیقه دیگه می‌تونی ضد دلقک رو اجرا کنی. نگران نباش کسی از تو دلقک‌تر نمیشه.
 
-cmd_unclown = {"\u200F"}💀 سطح دلقکی { $clown } توسط { $voter } کاهش یافت!
+cmd_unclown = 💀 سطح دلقکی { $clown } توسط { $voter } کاهش یافت!
 
 # Public commands
 cmd_stats_no_clown =
@@ -77,7 +77,7 @@ cmd_stats_group =
 
     { $clowns }{ $reset }
 
-cmd_stats_group_clown = {"\u200F"}— { $name } با { $votes } رای
+cmd_stats_group_clown = — { $name } با { $votes } رای
 
 cmd_stats_reset_at = 🕐 آمار از { $date } شمرده می‌شود.
 
@@ -87,7 +87,7 @@ cmd_clown_of_the_day_no_users =
     😐 هنوز کسی توی این گروه دلقک نشده که بتونم انتخابش کنم!
 
     اول با دستور clown/ یکی رو دلقک کن، بعد بیا سراغ دلقک روز. 🤡
-cmd_clown_of_the_day = {"\u200F"}👑 دلقک امروز: { $clown } — با { $quantity } رای دلقکی!
+cmd_clown_of_the_day = 👑 دلقک امروز: { $clown } — با { $quantity } رای دلقکی!
 
 # Admin commands
 cmd_setgif =

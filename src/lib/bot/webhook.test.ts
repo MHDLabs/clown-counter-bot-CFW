@@ -215,7 +215,7 @@ describe("grammY Cloudflare webhook", () => {
 
     expect(sendMessage?.payload["text"]).toContain("زبان پاسخ‌های ربات را انتخاب کنید");
     expect(sendMessage?.payload["reply_markup"]).toMatchObject({
-      inline_keyboard: [[{ text: "فارسی" }, { text: "English" }]],
+      inline_keyboard: [[{ text: "\u200Fفارسی" }, { text: "\u200FEnglish" }]],
     });
   });
 
