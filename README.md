@@ -59,13 +59,13 @@ Wrangler uses its local D1 database for `pnpm dev`. The committed SQLite migrati
 
 ## Maintainer automatic deployment
 
-The GitHub Actions production deployment is separate from the public button. It runs only for `MHDLabs/clown-counter-bot-CFW` on `main`, after validation succeeds. It resolves the existing `clown-counter-db` resource, applies pending migrations, deploys the Worker, stores `BOT_TOKEN` as a Worker secret, and registers the webhook. It does not provision a new production database or reset data.
+The GitHub Actions production deployment is separate from the public button. It runs only for `MHDLabs/clown-counter-bot-CFW` on `main`, after validation succeeds. On the first run it creates `clown-counter-db` if it does not exist; later runs resolve and reuse that database. It applies pending migrations, deploys the Worker, stores `BOT_TOKEN` as a Worker secret, and registers the webhook. It never deletes or resets production data.
 
-Configure these repository Actions secrets: `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` (Worker deployment and D1 access), and `BOT_TOKEN`. The workflow also supports manual runs with `workflow_dispatch`. Forks and pull requests run validation only and cannot enter the deployment job.
+Configure these repository Actions secrets: `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` (Worker deployment plus D1 list, create, and migration permissions), and `BOT_TOKEN`. The workflow also supports manual runs with `workflow_dispatch`. Forks and pull requests run validation only and cannot enter the deployment job.
 
 ## Security and troubleshooting
 
-Keep `.dev.vars`, `.env`, bot tokens, and Cloudflare API tokens private. The webhook secret is derived and is never logged. Ensure the Worker secret `BOT_TOKEN` is set and webhook registration succeeds; a deployment is not considered complete if registration fails. The maintainer database must be named `clown-counter-db`, and the API token must have the necessary Workers and D1 permissions. Wrangler logs intentionally omit raw upstream error objects and sensitive request headers.
+Keep `.dev.vars`, `.env`, bot tokens, and Cloudflare API tokens private. The webhook secret is derived and is never logged. Ensure the Worker secret `BOT_TOKEN` is set and webhook registration succeeds; a deployment is not considered complete if registration fails. The maintainer D1 database is named `clown-counter-db`; first-time provisioning requires D1 create permission, while deployments reuse the same database thereafter. Wrangler logs intentionally omit raw upstream error objects and sensitive request headers.
 
 ## Contributing and license
 
