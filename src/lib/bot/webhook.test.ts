@@ -306,7 +306,7 @@ describe("grammY Cloudflare webhook", () => {
   it.each([
     ["en", "Clown Counter — help"],
     ["fa", "راهنمای ربات دلقک‌شمار"],
-  ] as const)("serves the detailed /help guide in saved locale %s", async (locale, expected) => {
+  ] as const)("serves the structured /help Rich Message in saved locale %s", async (locale, expected) => {
     const bot = new Bot("123456:fake_token", {
       botId: fakeBotInfo.id,
       database: testDatabase(locale),
@@ -339,9 +339,18 @@ describe("grammY Cloudflare webhook", () => {
 
     expect(response.status).toBe(200);
 
-    const sendMessage = calls.find((call) => call.method === "sendMessage");
+    const sendRichMessage = calls.find((call) => call.method === "sendRichMessage");
+    const richMessage = sendRichMessage?.payload["rich_message"] as
+      { blocks: { type: string }[]; is_rtl: boolean } | undefined;
+    const payloadText = JSON.stringify(richMessage);
 
-    expect(sendMessage?.payload["text"]).toContain(expected);
-    expect(sendMessage?.payload["text"]).toContain(locale === "en" ? "/clownoftheday" : "/setcooldown");
+    expect(richMessage?.is_rtl).toBe(locale === "fa");
+    expect(richMessage?.blocks.map((block) => block.type)).toContain("heading");
+    expect(richMessage?.blocks.map((block) => block.type)).toContain("list");
+    expect(richMessage?.blocks.map((block) => block.type)).toContain("divider");
+    expect(payloadText).toContain(expected);
+    expect(payloadText).toContain(locale === "en" ? "/clownoftheday" : "/setcooldown");
+    expect(sendRichMessage?.payload["reply_parameters"]).toMatchObject({ message_id: 6 });
+    expect(payloadText.includes("\u200f")).toBe(locale === "fa");
   });
 });

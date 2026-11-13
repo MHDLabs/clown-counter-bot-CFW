@@ -8,6 +8,7 @@ import en from "../../../../locales/en.ftl";
 import fa from "../../../../locales/fa.ftl";
 
 export interface I18nFlavor {
+  locale: "en" | "fa";
   t: (key: string, variables?: Record<string, FluentVariable>) => string;
 }
 const bundles = {
@@ -38,6 +39,9 @@ export function i18nMiddleware() {
         })
       : undefined;
     const locale = saved?.locale ?? (ctx.from?.language_code?.toLowerCase().startsWith("en") ? "en" : "fa");
+    // Each update has its own context; the saved preference is only known after the awaited D1 lookup.
+    // eslint-disable-next-line require-atomic-updates
+    ctx.locale = locale;
     ctx.t = (key, variables) => translate(locale, key, variables);
     await next();
   };

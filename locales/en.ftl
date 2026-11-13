@@ -73,26 +73,23 @@ cmd_resetstats_cancelled = Reset cancelled; statistics were not changed.
 cmd_resetstats_not_admin = Only group administrators can reset statistics.
 cmd_admin_only = Only group administrators can change this setting.
 
-cmd_help =
-    📖 Clown Counter — help
 
-    VOTING (in a group)
-    • Reply to a member's message with /clown or 🤡 to add a clown vote.
-    • Reply with /unclown or 😇 to lower their score.
-    • You cannot vote for yourself, the bot, or another bot. Each voter has a separate cooldown per group (default: 10 minutes).
-    • You can also reply with 🤡 or «دلقک» / 😇 or «ستون» / «آدم عاقل». These plain-text triggers and custom media require the bot to receive group messages; Telegram privacy settings may require making the bot an administrator. Commands with replies work without reading every group message.
-
-    GROUP COMMANDS
-    • /stats — show this group's score table.
-    • /clownoftheday — choose a random eligible clown once per UTC day; adds 5–20 votes.
-
-    ADMIN / BOT-ADMIN COMMANDS (group admins and designated bot admins can use these in groups; the bot must be able to verify group-admin status)
-    • /setcooldown <minutes> — set the voting wait to 0–60 minutes (default 10).
-    • /resetstats — start a new statistics period; stored vote history is kept.
-    • Custom media: reply to an animation/GIF with /setgif or /setunclowngif; reply to a sticker with /setsticker or /setunclownsticker. Use the matching /remove... command the same way to remove it. Up to 3 items per type. To trigger configured media, send it as a reply to the member you want to vote for.
-
-    PRIVATE CHAT
-    • /language — save your reply language (English or فارسی).
-    • /privacy — data storage details. /source — source code. /start — introduction.
-
-    Votes and settings are separate for each group. Statistics reset does not delete vote records. For a vote, always reply to the target member's message.
+help_title = 🤡 Clown Counter — help
+help_voting_heading = Voting in a group
+help_vote_add = Reply to a group member's message with /clown or 🤡 to add a clown vote.
+help_vote_remove = Reply with /unclown or 😇 to lower their score.
+help_vote_limits = You cannot vote for yourself, the bot, or another bot.
+help_vote_cooldown = Each voter has a separate cooldown in each group (default: 10 minutes).
+help_text_triggers = 🤡 / «دلقک», 😇 / «ستون» / «آدم عاقل», and custom media work only when Telegram delivers group messages to the bot. You may need to turn off Privacy Mode in BotFather or make the bot an administrator with limited rights. Reply commands do not require reading every group message.
+help_group_heading = Group stats
+help_stats = /stats — show this group's score table.
+help_clown_of_day = /clownoftheday — randomly choose the clown of the day once per UTC day and add 5–20 votes.
+help_admin_heading = Group settings
+help_set_cooldown = /setcooldown minutes — set the vote cooldown to 0–60 minutes (default: 10).
+help_reset_stats = /resetstats — start a new statistics period; stored vote history is kept.
+help_custom_clown_media = Clown media: reply to a GIF/animation with /setgif, or to a sticker with /setsticker. Remove them with /removegif or /removesticker. Up to 3 of each type.
+help_custom_unclown_media = Unclown media: reply to a GIF/animation with /setunclowngif, or to a sticker with /setunclownsticker. Remove them with /removeunclowngif or /removeunclownsticker. Up to 3 of each type. To use saved media, reply to the target member with it.
+help_private_heading = Private chat
+help_language = /language — save your reply language (English or فارسی).
+help_privacy_source = /privacy — data storage. /source — source code. /start — introduction.
+help_footer = Scores and settings are separate for each group. Reply to the target member's message to vote.
