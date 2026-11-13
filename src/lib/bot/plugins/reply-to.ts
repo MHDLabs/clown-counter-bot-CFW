@@ -11,7 +11,9 @@ export async function replyToMiddleware(ctx: BotContext, next: NextFunction) {
   ctx.replyTo = async (msg, text) => {
     return await ctx.reply(
       text,
-      msg ? { reply_parameters: { message_id: msg.message_id, chat_id: msg.chat.id } } : undefined,
+      msg
+        ? { reply_parameters: { message_id: msg.message_id, chat_id: msg.chat.id, allow_sending_without_reply: true } }
+        : undefined,
     );
   };
 

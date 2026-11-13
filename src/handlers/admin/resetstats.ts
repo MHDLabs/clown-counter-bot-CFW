@@ -22,7 +22,7 @@ async function promptResetStats(ctx: BotContext) {
 
   return await ctx.reply(ctx.t("cmd_resetstats_confirm"), {
     reply_markup: keyboard,
-    reply_parameters: { message_id: msg.message_id, chat_id: msg.chat.id },
+    reply_parameters: { message_id: msg.message_id, chat_id: msg.chat.id, allow_sending_without_reply: true },
   });
 }
 

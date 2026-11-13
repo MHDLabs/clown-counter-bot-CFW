@@ -8,7 +8,15 @@ export const sourceHandler: CommandHandler = {
   handler: async (ctx) => {
     return await ctx.reply(ctx.t("cmd_source"), {
       link_preview_options: { is_disabled: true },
-      ...(ctx.msg ? { reply_parameters: { message_id: ctx.msg.message_id, chat_id: ctx.msg.chat.id } } : {}),
+      ...(ctx.msg
+        ? {
+            reply_parameters: {
+              message_id: ctx.msg.message_id,
+              chat_id: ctx.msg.chat.id,
+              allow_sending_without_reply: true,
+            },
+          }
+        : {}),
     });
   },
 };

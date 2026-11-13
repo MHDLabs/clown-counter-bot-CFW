@@ -34,7 +34,7 @@ async function groupStats(ctx: BotContext) {
 
   if (clowns.length === 0) {
     return await ctx.reply(ctx.t("cmd_stats_no_clown"), {
-      reply_parameters: { message_id: message.message_id, chat_id: message.chat.id },
+      reply_parameters: { message_id: message.message_id, chat_id: message.chat.id, allow_sending_without_reply: true },
     });
   }
 
@@ -43,7 +43,7 @@ async function groupStats(ctx: BotContext) {
   const resetText = group?.resetAt ? `\n\n${ctx.t("cmd_stats_reset_at", { date: localizeDate(group.resetAt) })}` : "";
 
   return await ctx.reply(ctx.t("cmd_stats_group", { clowns: clownsText.join("\n"), reset: resetText }), {
-    reply_parameters: { message_id: message.message_id, chat_id: message.chat.id },
+    reply_parameters: { message_id: message.message_id, chat_id: message.chat.id, allow_sending_without_reply: true },
   });
 }
 

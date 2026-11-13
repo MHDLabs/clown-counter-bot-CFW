@@ -171,7 +171,11 @@ describe("grammY Cloudflare webhook", () => {
     const sendMessage = calls.find((call) => call.method === "sendMessage");
 
     expect(sendMessage?.payload["text"]).toContain("Reply to a group member's message");
-    expect(sendMessage?.payload["reply_parameters"]).toMatchObject({ message_id: 4, chat_id: -100123 });
+    expect(sendMessage?.payload["reply_parameters"]).toMatchObject({
+      message_id: 4,
+      chat_id: -100123,
+      allow_sending_without_reply: true,
+    });
   });
 
   it("offers the language panel using the persisted preference", async () => {
