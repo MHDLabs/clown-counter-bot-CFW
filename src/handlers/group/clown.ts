@@ -60,7 +60,18 @@ async function waitMinutes(ctx: BotContext, data: Data): Promise<number> {
 
 async function voteHandler(ctx: BotContext, quantity: -1 | 1) {
   const data = getData(ctx);
-  if (!data) return;
+
+  if (!data) {
+    if (ctx.message) {
+      const prefix = quantity > 0 ? "cmd_clown" : "cmd_unclown";
+      return await ctx.reply(ctx.t(`${prefix}_usage`), {
+        reply_parameters: { message_id: ctx.message.message_id, chat_id: ctx.message.chat.id },
+      });
+    }
+
+    return;
+  }
+
   const { messageId, group, voter, clown } = data;
   const prefix = quantity > 0 ? "cmd_clown" : "cmd_unclown";
   const reply = (text: string) => ctx.reply(text, { reply_parameters: { message_id: messageId, chat_id: group.id } });

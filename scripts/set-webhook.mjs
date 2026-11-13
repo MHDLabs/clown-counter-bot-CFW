@@ -1,6 +1,8 @@
 /* eslint-disable camelcase, dot-notation */
 import { createHash } from "node:crypto";
 
+import { administratorMenu, commandMenus } from "./command-menus.mjs";
+
 const token = process.env["BOT_TOKEN"];
 const workerUrl = process.env["WORKER_URL"];
 if (!token || !workerUrl) throw new Error("BOT_TOKEN and WORKER_URL are required");
@@ -79,33 +81,7 @@ await telegram("setWebhook", { url, secret_token: secret, allowed_updates: ["mes
 const webhookInfo = await telegram("getWebhookInfo", {});
 if (webhookInfo.result?.url !== url) throw new Error("Telegram did not retain the expected webhook URL");
 reportWebhookStatus("after registration", webhookInfo);
-const commands = {
-  private: [
-    { command: "start", description: "Start Clown Counter" },
-    { command: "language", description: "Choose bot language" },
-    { command: "privacy", description: "Privacy information" },
-    { command: "source", description: "View source code" },
-  ],
-  group: [
-    { command: "clown", description: "Vote clown for replied member" },
-    { command: "unclown", description: "Lower clown score of replied member" },
-    { command: "stats", description: "Show group statistics" },
-    { command: "clownoftheday", description: "Choose clown of the day" },
-  ],
-  admin: [
-    { command: "setcooldown", description: "Set group vote cooldown" },
-    { command: "setgif", description: "Add clown GIF by reply" },
-    { command: "removegif", description: "Remove clown GIF by reply" },
-    { command: "setsticker", description: "Add clown sticker by reply" },
-    { command: "removesticker", description: "Remove clown sticker by reply" },
-    { command: "setunclowngif", description: "Add unclown GIF by reply" },
-    { command: "removeunclowngif", description: "Remove unclown GIF by reply" },
-    { command: "setunclownsticker", description: "Add unclown sticker by reply" },
-    { command: "removeunclownsticker", description: "Remove unclown sticker by reply" },
-    { command: "resetstats", description: "Reset group statistics" },
-  ],
-};
-await telegram("setMyCommands", { commands: commands.private, scope: { type: "all_private_chats" } });
-await telegram("setMyCommands", { commands: commands.group, scope: { type: "all_group_chats" } });
-await telegram("setMyCommands", { commands: commands.admin, scope: { type: "all_chat_administrators" } });
+await telegram("setMyCommands", { commands: commandMenus.private, scope: { type: "all_private_chats" } });
+await telegram("setMyCommands", { commands: commandMenus.group, scope: { type: "all_group_chats" } });
+await telegram("setMyCommands", { commands: administratorMenu, scope: { type: "all_chat_administrators" } });
 console.log("Telegram webhook and command menus configured successfully.");

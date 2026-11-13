@@ -7,9 +7,14 @@ import { handlers } from "@/handlers";
 import { sourceHandler } from "@/handlers/static/source";
 import { Bot, i18nMiddleware, replyToMiddleware } from "@/lib/bot";
 
-function testDatabase(locale?: "en" | "fa") {
+function testDatabase(locale?: "en" | "fa", onLocaleSaved?: (locale: "en" | "fa") => void) {
   return {
     query: { userPreferences: { findFirst: async () => (locale ? { locale } : undefined) } },
+    insert: () => ({
+      values: (row: { locale: "en" | "fa" }) => ({
+        onConflictDoUpdate: async () => onLocaleSaved?.(row.locale),
+      }),
+    }),
   } as unknown as AppDb;
 }
 
@@ -129,6 +134,46 @@ describe("grammY Cloudflare webhook", () => {
     expect(sendMessage?.payload["text"]).toContain("github.com/MHDLabs/clown-counter-bot-CFW");
   });
 
+  it("explains that group /clown requires replying to a target instead of staying silent", async () => {
+    const bot = new Bot("123456:fake_token", {
+      botId: fakeBotInfo.id,
+      database: testDatabase(),
+      plugins: [i18nMiddleware(), replyToMiddleware],
+    });
+    bot.registerHandlers(...handlers);
+    const calls: { method: string; payload: Record<string, unknown> }[] = [];
+    bot.api.config.use(async (_previous, method, payload) => {
+      calls.push({ method, payload });
+      const result = method === "getMe" ? fakeBotInfo : true;
+      return { ok: true, result } as never;
+    });
+    const webhook = webhookCallback(bot, "cloudflare-mod", { secretToken: "test-webhook-secret" });
+    const response = await webhook(
+      new Request("https://bot.test/telegram", {
+        method: "POST",
+        headers: { "content-type": "application/json", "X-Telegram-Bot-Api-Secret-Token": "test-webhook-secret" },
+        body: JSON.stringify({
+          update_id: 4,
+          message: {
+            message_id: 4,
+            from: { id: 10, is_bot: false, first_name: "Test", language_code: "en" },
+            chat: { id: -100123, type: "supergroup", title: "Test group" },
+            date: 1,
+            text: "/clown",
+            entities: [{ offset: 0, length: 6, type: "bot_command" }],
+          },
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+
+    const sendMessage = calls.find((call) => call.method === "sendMessage");
+
+    expect(sendMessage?.payload["text"]).toContain("Reply to a group member's message");
+    expect(sendMessage?.payload["reply_parameters"]).toMatchObject({ message_id: 4, chat_id: -100123 });
+  });
+
   it("offers the language panel using the persisted preference", async () => {
     const bot = new Bot("123456:fake_token", {
       botId: fakeBotInfo.id,
@@ -168,5 +213,47 @@ describe("grammY Cloudflare webhook", () => {
     expect(sendMessage?.payload["reply_markup"]).toMatchObject({
       inline_keyboard: [[{ text: "فارسی" }, { text: "English" }]],
     });
+  });
+
+  it("persists an English selection made from the language inline keyboard", async () => {
+    let persistedLocale: "en" | "fa" | undefined;
+    const bot = new Bot("123456:fake_token", {
+      botId: fakeBotInfo.id,
+      database: testDatabase("fa", (locale) => (persistedLocale = locale)),
+      plugins: [i18nMiddleware(), replyToMiddleware],
+    });
+    bot.registerHandlers(...handlers);
+    const calls: string[] = [];
+    bot.api.config.use(async (_previous, method) => {
+      calls.push(method);
+      return { ok: true, result: method === "getMe" ? fakeBotInfo : true } as never;
+    });
+    const webhook = webhookCallback(bot, "cloudflare-mod", { secretToken: "test-webhook-secret" });
+    const response = await webhook(
+      new Request("https://bot.test/telegram", {
+        method: "POST",
+        headers: { "content-type": "application/json", "X-Telegram-Bot-Api-Secret-Token": "test-webhook-secret" },
+        body: JSON.stringify({
+          update_id: 5,
+          callback_query: {
+            id: "callback-1",
+            from: { id: 10, is_bot: false, first_name: "Test", language_code: "fa" },
+            chat_instance: "chat-instance",
+            data: "language:en",
+            message: {
+              message_id: 5,
+              date: 1,
+              chat: { id: 10, type: "private", first_name: "Test" },
+              text: "زبان پاسخ‌های ربات را انتخاب کنید:",
+            },
+          },
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(persistedLocale).toBe("en");
+    expect(calls).toContain("answerCallbackQuery");
+    expect(calls).toContain("editMessageText");
   });
 });
