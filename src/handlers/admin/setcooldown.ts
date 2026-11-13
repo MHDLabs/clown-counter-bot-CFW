@@ -53,6 +53,6 @@ export const setCooldownHandler: CommandHandler = {
   kind: "command",
   name: "setcooldown",
   description: "⏱ تنظیم زمان انتظار دلقک",
-  scopes: [{ type: "all_chat_administrators" }],
+  scopes: [{ type: "all_group_chats" }, { type: "all_chat_administrators" }],
   handler: setCooldown,
 };

@@ -7,6 +7,7 @@ import { Bot, i18nMiddleware, replyToMiddleware } from "@/lib/bot";
 
 export interface Env {
   BOT_TOKEN: string;
+  BOT_ADMIN_IDS?: string;
   DB: D1Database;
 }
 
@@ -26,6 +27,15 @@ async function webhookSecret(token: string): Promise<string> {
   return [...new Uint8Array(hash)].map((v) => v.toString(16).padStart(2, "0")).join("");
 }
 
+function parseBotAdminIds(input: string | undefined): ReadonlySet<string> {
+  return new Set(
+    (input ?? "")
+      .split(",")
+      .map((id) => id.trim())
+      .filter((id) => /^\d+$/.test(id)),
+  );
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -40,7 +50,12 @@ export default {
     try {
       const database = createDb(env.DB);
       const botId = Number(token.slice(0, token.indexOf(":")));
-      const bot = new Bot(token, { botId, database, plugins: [i18nMiddleware(), replyToMiddleware] });
+      const bot = new Bot(token, {
+        botId,
+        database,
+        botAdminIds: parseBotAdminIds(env.BOT_ADMIN_IDS),
+        plugins: [i18nMiddleware(), replyToMiddleware],
+      });
       bot.registerHandlers(...handlers);
       return await webhookCallback(bot, "cloudflare-mod", { secretToken: secret })(request);
     } catch (error) {

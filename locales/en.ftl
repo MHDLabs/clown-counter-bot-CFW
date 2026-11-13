@@ -86,7 +86,7 @@ cmd_help =
     • /stats — show this group's score table.
     • /clownoftheday — choose a random eligible clown once per UTC day; adds 5–20 votes.
 
-    ADMIN COMMANDS (group admins; the bot must be able to verify admin status)
+    ADMIN / BOT-ADMIN COMMANDS (group admins and designated bot admins can use these in groups; the bot must be able to verify group-admin status)
     • /setcooldown <minutes> — set the voting wait to 0–60 minutes (default 10).
     • /resetstats — start a new statistics period; stored vote history is kept.
     • Custom media: reply to an animation/GIF with /setgif or /setunclowngif; reply to a sticker with /setsticker or /setunclownsticker. Use the matching /remove... command the same way to remove it. Up to 3 items per type. To trigger configured media, send it as a reply to the member you want to vote for.

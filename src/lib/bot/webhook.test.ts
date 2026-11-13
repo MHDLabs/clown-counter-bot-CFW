@@ -261,6 +261,48 @@ describe("grammY Cloudflare webhook", () => {
     expect(calls).toContain("editMessageText");
   });
 
+  it("allows the configured bot admin to change group settings without Telegram group-admin status", async () => {
+    const bot = new Bot("123456:fake_token", {
+      botId: fakeBotInfo.id,
+      database: testDatabase(),
+      botAdminIds: new Set(["7141112393"]),
+      plugins: [i18nMiddleware(), replyToMiddleware],
+    });
+    bot.registerHandlers(...handlers);
+    const calls: { method: string; payload: Record<string, unknown> }[] = [];
+    bot.api.config.use(async (_previous, method, payload) => {
+      calls.push({ method, payload });
+      return { ok: true, result: method === "getMe" ? fakeBotInfo : true } as never;
+    });
+    const webhook = webhookCallback(bot, "cloudflare-mod", { secretToken: "test-webhook-secret" });
+    const response = await webhook(
+      new Request("https://bot.test/telegram", {
+        method: "POST",
+        headers: { "content-type": "application/json", "X-Telegram-Bot-Api-Secret-Token": "test-webhook-secret" },
+        body: JSON.stringify({
+          update_id: 7,
+          message: {
+            message_id: 7,
+            from: { id: 7141112393, is_bot: false, first_name: "Bot Admin", language_code: "en" },
+            chat: { id: -100123, type: "supergroup", title: "Test group" },
+            date: 1,
+            text: "/setcooldown 5",
+            entities: [{ offset: 0, length: 12, type: "bot_command" }],
+          },
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(calls.some((call) => call.method === "getChatMember")).toBe(false);
+
+    const sendMessage = calls.find((call) => call.method === "sendMessage");
+
+    const sentText = String(sendMessage?.payload["text"]).replace(/[\u2066-\u2069]/g, "");
+
+    expect(sentText).toContain("Voting cooldown set to 5");
+  });
+
   it.each([
     ["en", "Clown Counter — help"],
     ["fa", "راهنمای ربات دلقک‌شمار"],

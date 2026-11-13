@@ -15,13 +15,23 @@ describe("Telegram command menus", () => {
     ]);
   });
 
-  it("publishes all common group commands", () => {
+  it("publishes group commands and protected settings commands", () => {
     expect(commandMenus.group.map(({ command }) => command)).toEqual([
       "help",
       "clown",
       "unclown",
       "stats",
       "clownoftheday",
+      "setcooldown",
+      "setgif",
+      "removegif",
+      "setsticker",
+      "removesticker",
+      "setunclowngif",
+      "removeunclowngif",
+      "setunclownsticker",
+      "removeunclownsticker",
+      "resetstats",
     ]);
   });
 

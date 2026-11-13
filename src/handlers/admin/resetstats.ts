@@ -63,7 +63,7 @@ export const resetStatsHandler: CommandHandler = {
   kind: "command",
   name: "resetstats",
   description: "🔄 ریست آمار دلقک‌ها",
-  scopes: [{ type: "all_chat_administrators" }],
+  scopes: [{ type: "all_group_chats" }, { type: "all_chat_administrators" }],
   handler: promptResetStats,
 };
 

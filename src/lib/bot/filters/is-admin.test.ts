@@ -41,4 +41,19 @@ describe("isAdmin", () => {
 
     await expect(isAdmin(ctx)).resolves.toBe(false);
   });
+
+  it("authorizes an explicitly configured bot admin without requiring Telegram group admin status", async () => {
+    const getAuthor = vi.fn(async () => {
+      throw new Error("the bot is not a group administrator");
+    });
+    const ctx = {
+      chat: { id: -100 },
+      from: { id: 7141112393 },
+      botAdminIds: new Set(["7141112393"]),
+      getAuthor,
+    } as unknown as BotContext;
+
+    await expect(isAdmin(ctx)).resolves.toBe(true);
+    expect(getAuthor).not.toHaveBeenCalled();
+  });
 });

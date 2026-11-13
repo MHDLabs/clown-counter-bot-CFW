@@ -21,11 +21,13 @@ export type BotContext = Context &
     clownCall?: ClownCall;
     db: AppDb;
     meId: number;
+    botAdminIds?: ReadonlySet<string>;
   };
 
 interface BotOptions {
   botId: number;
   database: AppDb;
+  botAdminIds?: ReadonlySet<string>;
   plugins: Middleware<BotContext>[];
 }
 
@@ -36,12 +38,13 @@ export class Bot extends GrammyBot<BotContext> {
    */
   readonly commands = new CommandGroup<BotContext>();
 
-  constructor(token: string, { botId, database, plugins }: BotOptions) {
+  constructor(token: string, { botId, database, botAdminIds = new Set(), plugins }: BotOptions) {
     super(token);
 
     this.use(async (ctx, next) => {
       ctx.db = database;
       ctx.meId = botId;
+      ctx.botAdminIds = botAdminIds;
       await next();
     });
     plugins.forEach((plugin) => this.use(plugin));

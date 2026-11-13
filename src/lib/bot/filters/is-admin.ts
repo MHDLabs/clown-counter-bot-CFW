@@ -4,6 +4,8 @@ import type { BotContext } from "..";
 export async function isAdmin(ctx: BotContext): Promise<boolean> {
   if (!ctx.chat) return false;
 
+  if (ctx.from && ctx.botAdminIds?.has(String(ctx.from.id))) return true;
+
   if (ctx.senderChat?.id === ctx.chat.id) {
     return true;
   }

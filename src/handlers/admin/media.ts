@@ -140,7 +140,7 @@ function toSpec(kind: MediaKind, verb: "remove" | "set"): MediaSpec {
 }
 
 export const mediaHandlers: CommandHandler[] = KINDS.flatMap((kind) => {
-  const scopes: BotCommandScope[] = [{ type: "all_chat_administrators" }];
+  const scopes: BotCommandScope[] = [{ type: "all_group_chats" }, { type: "all_chat_administrators" }];
 
   return [
     {
