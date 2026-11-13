@@ -7,29 +7,50 @@ if (!token || !workerUrl) throw new Error("BOT_TOKEN and WORKER_URL are required
 const base = `https://api.telegram.org/bot${token}`;
 const secret = createHash("sha256").update(`clown-counter-webhook:${token}`).digest("hex");
 
-/** @param {string} method @param {Record<string, unknown>} payload */
-async function telegram(method, payload) {
-  let response;
+/** @param {number} milliseconds */
+function delay(milliseconds) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, milliseconds);
+  });
+}
 
+/** @param {string} method @param {Record<string, unknown>} payload @param {number} attempt */
+async function requestWithRetry(method, payload, attempt = 1) {
   try {
-    response = await fetch(`${base}/${method}`, {
+    return await fetch(`${base}/${method}`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(payload),
     });
-  } catch {
-    throw new Error(`Telegram ${method} request failed before a response was received`);
+  } catch (error) {
+    const cause = error instanceof Error ? error.cause : undefined;
+    const code = cause && typeof cause === "object" && "code" in cause ? cause.code : undefined;
+    const reason = String(code ?? (error instanceof Error ? error.name : "unknown error"));
+    if (attempt === 5) throw new Error(`Telegram ${method} request failed before a response was received (${reason})`);
+
+    console.warn(`Telegram ${method} connection attempt ${attempt}/5 failed (${reason}); retrying.`);
+    await delay(1000 * 2 ** (attempt - 1));
+    return requestWithRetry(method, payload, attempt + 1);
   }
+}
+
+/** @param {string} method @param {Record<string, unknown>} payload */
+async function telegram(method, payload) {
+  const response = await requestWithRetry(method, payload);
 
   const result = await response.json();
 
   if (!response.ok || result.ok !== true) {
     throw new Error(`Telegram ${method} failed: ${result.description ?? `HTTP ${response.status}`}`);
   }
+
+  return result;
 }
 
 const url = `${workerUrl.replace(/\/$/, "")}/telegram`;
 await telegram("setWebhook", { url, secret_token: secret, allowed_updates: ["message", "callback_query"] });
+const webhookInfo = await telegram("getWebhookInfo", {});
+if (webhookInfo.result?.url !== url) throw new Error("Telegram did not retain the expected webhook URL");
 const commands = {
   private: [
     { command: "start", description: "Start Clown Counter" },
