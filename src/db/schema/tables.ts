@@ -9,6 +9,11 @@ export const users = t.sqliteTable("users", {
   name: t.text().notNull(),
 });
 
+export const userPreferences = t.sqliteTable("user_preferences", {
+  userId: telegramId().primaryKey(),
+  locale: t.text().$type<"en" | "fa">().notNull().default("fa"),
+});
+
 export const groups = t.sqliteTable("groups", {
   id: telegramId().primaryKey(),
   name: t.text(),

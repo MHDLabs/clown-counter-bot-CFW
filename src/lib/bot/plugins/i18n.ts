@@ -24,7 +24,13 @@ export function translate(locale: "en" | "fa", key: string, variables?: Record<s
 
 export function i18nMiddleware() {
   return async (ctx: BotContext, next: () => Promise<void>) => {
-    const locale = ctx.from?.language_code?.toLowerCase().startsWith("en") ? "en" : "fa";
+    const saved = ctx.from
+      ? await ctx.db.query.userPreferences.findFirst({
+          columns: { locale: true },
+          where: (fields, operators) => operators.eq(fields.userId, String(ctx.from?.id)),
+        })
+      : undefined;
+    const locale = saved?.locale ?? (ctx.from?.language_code?.toLowerCase().startsWith("en") ? "en" : "fa");
     ctx.t = (key, variables) => translate(locale, key, variables);
     await next();
   };

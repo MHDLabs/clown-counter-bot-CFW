@@ -82,6 +82,7 @@ reportWebhookStatus("after registration", webhookInfo);
 const commands = {
   private: [
     { command: "start", description: "Start Clown Counter" },
+    { command: "language", description: "Choose bot language" },
     { command: "privacy", description: "Privacy information" },
     { command: "source", description: "View source code" },
   ],
