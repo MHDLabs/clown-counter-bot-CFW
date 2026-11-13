@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import type { AppDb } from "@/db";
 
 import { sourceHandler } from "@/handlers/static/source";
+import { startHandler } from "@/handlers/static/start";
 import { Bot, i18nMiddleware, replyToMiddleware } from "@/lib/bot";
 
 const fakeBotInfo = {
@@ -23,6 +24,56 @@ const fakeBotInfo = {
 };
 
 describe("grammY Cloudflare webhook", () => {
+  it("processes an authenticated /start update and replies in the user's language", async () => {
+    const bot = new Bot("123456:fake_token", {
+      botId: fakeBotInfo.id,
+      database: {} as AppDb,
+      plugins: [i18nMiddleware(), replyToMiddleware],
+    });
+    bot.registerHandlers(startHandler);
+    const calls: { method: string; payload: Record<string, unknown> }[] = [];
+    bot.api.config.use(async (_previous, method, payload) => {
+      calls.push({ method, payload });
+      const result =
+        method === "getMe"
+          ? fakeBotInfo
+          : method === "sendMessage"
+            ? {
+                message_id: 2,
+                date: 1,
+                chat: { id: 10, type: "private", first_name: "Test" },
+                text: String((payload as unknown as Record<string, unknown>)["text"]),
+              }
+            : true;
+      return { ok: true, result } as never;
+    });
+
+    const webhook = webhookCallback(bot, "cloudflare-mod", { secretToken: "test-webhook-secret" });
+    const response = await webhook(
+      new Request("https://bot.test/telegram", {
+        method: "POST",
+        headers: { "content-type": "application/json", "X-Telegram-Bot-Api-Secret-Token": "test-webhook-secret" },
+        body: JSON.stringify({
+          update_id: 2,
+          message: {
+            message_id: 2,
+            from: { id: 10, is_bot: false, first_name: "Test", language_code: "en" },
+            chat: { id: 10, type: "private", first_name: "Test" },
+            date: 1,
+            text: "/start",
+            entities: [{ offset: 0, length: 6, type: "bot_command" }],
+          },
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+
+    const sendMessage = calls.find((call) => call.method === "sendMessage");
+
+    expect(sendMessage?.payload["text"]).toContain("Welcome!");
+  });
+
   it("processes an authenticated /source update with a mocked Telegram API", async () => {
     const bot = new Bot("123456:fake_token", {
       botId: fakeBotInfo.id,

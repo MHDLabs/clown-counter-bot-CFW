@@ -33,8 +33,9 @@ export default {
       const bot = new Bot(token, { botId, database, plugins: [i18nMiddleware(), replyToMiddleware] });
       bot.registerHandlers(...handlers);
       return await webhookCallback(bot, "cloudflare-mod", { secretToken: secret })(request);
-    } catch {
-      // Never expose request bodies, Telegram credentials, secret headers, or upstream error objects.
+    } catch (error) {
+      // Log only the error class; never expose request bodies, credentials, headers, or upstream error objects.
+      console.error(`Webhook processing failed (${error instanceof Error ? error.name : "UnknownError"})`);
       return new Response("Webhook processing failed", { status: 500 });
     }
   },

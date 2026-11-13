@@ -4,6 +4,12 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      capture_worker_logs:
+        description: Capture production Worker logs for 90 seconds after deployment
+        required: false
+        default: false
+        type: boolean
 permissions:
   contents: read
 concurrency:
@@ -107,3 +113,16 @@ jobs:
         run: pnpm set:webhook
       - name: Verify Worker health
         run: curl --fail --silent --show-error "$WORKER_URL/health"
+      - name: Capture live Worker logs for diagnosis
+        if: github.event_name == 'workflow_dispatch' && inputs.capture_worker_logs
+        shell: bash
+        run: |
+          echo "Starting a 90-second live log capture."
+          set +e
+          timeout --signal=INT --kill-after=10s 90s pnpm exec wrangler tail clown-counter-bot --format json
+          status=$?
+          if [ "$status" -eq 124 ] || [ "$status" -eq 130 ]; then
+            echo "Live log capture window ended."
+            exit 0
+          fi
+          exit "$status"

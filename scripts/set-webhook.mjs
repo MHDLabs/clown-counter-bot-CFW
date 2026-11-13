@@ -48,9 +48,28 @@ async function telegram(method, payload) {
 }
 
 const url = `${workerUrl.replace(/\/$/, "")}/telegram`;
+
+/** @param {string} label @param {{ result: { url?: string; pending_update_count?: number; last_error_date?: number; last_error_message?: string; allowed_updates?: string[] } }} response */
+function reportWebhookStatus(label, response) {
+  const info = response.result;
+  const lastError =
+    typeof info.last_error_message === "string" ? info.last_error_message.replaceAll(token ?? "", "[redacted]") : null;
+  console.log(
+    `Telegram webhook ${label}: ${JSON.stringify({
+      expectedUrl: info.url === url,
+      pendingUpdates: info.pending_update_count ?? 0,
+      lastErrorDate: info.last_error_date ? new Date(info.last_error_date * 1000).toISOString() : null,
+      lastError,
+      allowedUpdates: info.allowed_updates ?? [],
+    })}`,
+  );
+}
+
+reportWebhookStatus("before re-registration", await telegram("getWebhookInfo", {}));
 await telegram("setWebhook", { url, secret_token: secret, allowed_updates: ["message", "callback_query"] });
 const webhookInfo = await telegram("getWebhookInfo", {});
 if (webhookInfo.result?.url !== url) throw new Error("Telegram did not retain the expected webhook URL");
+reportWebhookStatus("after registration", webhookInfo);
 const commands = {
   private: [
     { command: "start", description: "Start Clown Counter" },
