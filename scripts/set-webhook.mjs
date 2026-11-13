@@ -49,6 +49,15 @@ async function telegram(method, payload) {
 
 const url = `${workerUrl.replace(/\/$/, "")}/telegram`;
 
+const botInfo = await telegram("getMe", {});
+console.log(
+  `Telegram bot identity: ${JSON.stringify({
+    id: botInfo.result.id,
+    username: botInfo.result.username,
+    firstName: botInfo.result.first_name,
+  })}`,
+);
+
 /** @param {string} label @param {{ result: { url?: string; pending_update_count?: number; last_error_date?: number; last_error_message?: string; allowed_updates?: string[] } }} response */
 function reportWebhookStatus(label, response) {
   const info = response.result;

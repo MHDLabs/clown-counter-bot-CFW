@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 
 import type { AppDb } from "@/db";
 
+import { handlers } from "@/handlers";
 import { sourceHandler } from "@/handlers/static/source";
-import { startHandler } from "@/handlers/static/start";
 import { Bot, i18nMiddleware, replyToMiddleware } from "@/lib/bot";
 
 const fakeBotInfo = {
@@ -30,7 +30,7 @@ describe("grammY Cloudflare webhook", () => {
       database: {} as AppDb,
       plugins: [i18nMiddleware(), replyToMiddleware],
     });
-    bot.registerHandlers(startHandler);
+    bot.registerHandlers(...handlers);
     const calls: { method: string; payload: Record<string, unknown> }[] = [];
     bot.api.config.use(async (_previous, method, payload) => {
       calls.push({ method, payload });
