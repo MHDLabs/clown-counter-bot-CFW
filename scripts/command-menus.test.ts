@@ -6,11 +6,23 @@ import { administratorMenu, commandMenus } from "./command-menus.mjs";
 
 describe("Telegram command menus", () => {
   it("publishes the private commands including language selection", () => {
-    expect(commandMenus.private.map(({ command }) => command)).toEqual(["start", "language", "privacy", "source"]);
+    expect(commandMenus.private.map(({ command }) => command)).toEqual([
+      "start",
+      "help",
+      "language",
+      "privacy",
+      "source",
+    ]);
   });
 
   it("publishes all common group commands", () => {
-    expect(commandMenus.group.map(({ command }) => command)).toEqual(["clown", "unclown", "stats", "clownoftheday"]);
+    expect(commandMenus.group.map(({ command }) => command)).toEqual([
+      "help",
+      "clown",
+      "unclown",
+      "stats",
+      "clownoftheday",
+    ]);
   });
 
   it("includes common group commands as well as admin tools for administrators", () => {

@@ -1,11 +1,13 @@
 export const commandMenus = {
   private: [
     { command: "start", description: "Start Clown Counter" },
+    { command: "help", description: "Detailed usage guide" },
     { command: "language", description: "Choose bot language" },
     { command: "privacy", description: "Privacy information" },
     { command: "source", description: "View source code" },
   ],
   group: [
+    { command: "help", description: "Detailed usage guide" },
     { command: "clown", description: "Vote clown for replied member" },
     { command: "unclown", description: "Lower clown score of replied member" },
     { command: "stats", description: "Show group statistics" },
