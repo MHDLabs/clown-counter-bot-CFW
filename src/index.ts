@@ -1,5 +1,5 @@
 /// <reference types="@cloudflare/workers-types" />
-import { webhookCallback } from "grammy";
+import { GrammyError, webhookCallback } from "grammy";
 
 import { createDb } from "@/db";
 import { handlers } from "@/handlers";
@@ -8,6 +8,16 @@ import { Bot, i18nMiddleware, replyToMiddleware } from "@/lib/bot";
 export interface Env {
   BOT_TOKEN: string;
   DB: D1Database;
+}
+
+function safeErrorSummary(error: unknown): string {
+  if (!(error instanceof Error)) return "UnknownError";
+
+  const nested = "error" in error ? error.error : undefined;
+  if (nested instanceof GrammyError) return `${error.name}:${nested.name}:${nested.description}`;
+  if (nested instanceof Error) return `${error.name}:${nested.name}`;
+
+  return error.name;
 }
 
 async function webhookSecret(token: string): Promise<string> {
@@ -34,8 +44,8 @@ export default {
       bot.registerHandlers(...handlers);
       return await webhookCallback(bot, "cloudflare-mod", { secretToken: secret })(request);
     } catch (error) {
-      // Log only the error class; never expose request bodies, credentials, headers, or upstream error objects.
-      console.error(`Webhook processing failed (${error instanceof Error ? error.name : "UnknownError"})`);
+      // Log safe error metadata only; never expose request bodies, credentials, headers, or upstream objects.
+      console.error(`Webhook processing failed (${safeErrorSummary(error)})`);
       return new Response("Webhook processing failed", { status: 500 });
     }
   },

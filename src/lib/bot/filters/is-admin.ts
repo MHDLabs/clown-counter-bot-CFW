@@ -8,7 +8,13 @@ export async function isAdmin(ctx: BotContext): Promise<boolean> {
     return true;
   }
 
-  const author = await ctx.getAuthor();
+  try {
+    const author = await ctx.getAuthor();
 
-  return ["administrator", "creator"].includes(author.status);
+    return ["administrator", "creator"].includes(author.status);
+  } catch {
+    // Telegram only guarantees getChatMember results when the bot is an admin.
+    // Fail closed for admin-only operations, but do not turn a permission issue into a webhook 500.
+    return false;
+  }
 }

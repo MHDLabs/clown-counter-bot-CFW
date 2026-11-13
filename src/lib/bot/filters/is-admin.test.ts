@@ -30,4 +30,15 @@ describe("isAdmin", () => {
 
     await expect(isAdmin(ctx)).resolves.toBe(false);
   });
+
+  it("fails closed when Telegram cannot verify the member", async () => {
+    const ctx = {
+      chat: { id: -100 },
+      getAuthor: vi.fn(async () => {
+        throw new Error("not enough rights");
+      }),
+    } as unknown as BotContext;
+
+    await expect(isAdmin(ctx)).resolves.toBe(false);
+  });
 });
