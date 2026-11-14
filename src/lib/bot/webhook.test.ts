@@ -10,12 +10,15 @@ import { Bot, i18nMiddleware, replyToMiddleware } from "@/lib/bot";
 function testDatabase(
   locale?: "en" | "fa",
   onLocaleSaved?: (locale: "en" | "fa") => void,
-  personalStats = { score: 0, received: 0, removed: 0 },
+  options: {
+    personalStats?: { score: number; received: number; removed: number };
+    group?: { gifIds: string[] | null; stickerIds: string[] | null };
+  } = {},
 ) {
   return {
     query: {
       userPreferences: { findFirst: async () => (locale ? { locale } : undefined) },
-      groups: { findFirst: async () => undefined },
+      groups: { findFirst: async () => options.group },
     },
     insert: () => ({
       values: (row: { locale: "en" | "fa" }) => ({
@@ -24,7 +27,7 @@ function testDatabase(
     }),
     select: () => ({
       from: () => ({
-        where: async () => [personalStats],
+        where: async () => [options.personalStats ?? { score: 0, received: 0, removed: 0 }],
       }),
     }),
   } as unknown as AppDb;
@@ -47,6 +50,49 @@ const fakeBotInfo = {
 };
 
 describe("grammY Cloudflare webhook", () => {
+  it.each([
+    { command: "/clowngifs", method: "sendAnimation", ids: ["gif-one", "gif-two"], field: "gifIds" },
+    { command: "/clownstickers", method: "sendSticker", ids: ["sticker-one", "sticker-two"], field: "stickerIds" },
+  ] as const)("sends every configured clown $field item with $command", async ({ command, method, ids, field }) => {
+    const media = { gifIds: null, stickerIds: null, [field]: ids };
+    const bot = new Bot("123456:fake_token", {
+      botId: fakeBotInfo.id,
+      database: testDatabase("en", undefined, { group: media }),
+      plugins: [i18nMiddleware(), replyToMiddleware],
+    });
+    bot.registerHandlers(...handlers);
+    const calls: { method: string; payload: Record<string, unknown> }[] = [];
+    bot.api.config.use(async (_previous, apiMethod, payload) => {
+      calls.push({ method: apiMethod, payload });
+      return { ok: true, result: apiMethod === "getMe" ? fakeBotInfo : true } as never;
+    });
+    const webhook = webhookCallback(bot, "cloudflare-mod", { secretToken: "test-webhook-secret" });
+    const response = await webhook(
+      new Request("https://bot.test/telegram", {
+        method: "POST",
+        headers: { "content-type": "application/json", "X-Telegram-Bot-Api-Secret-Token": "test-webhook-secret" },
+        body: JSON.stringify({
+          update_id: 20,
+          message: {
+            message_id: 20,
+            from: { id: 10, is_bot: false, first_name: "Test", language_code: "en" },
+            chat: { id: -100123, type: "supergroup", title: "Test group" },
+            date: 1,
+            text: command,
+            entities: [{ offset: 0, length: command.length, type: "bot_command" }],
+          },
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(
+      calls
+        .filter((call) => call.method === method)
+        .map((call) => call.payload[field === "gifIds" ? "animation" : "sticker"]),
+    ).toEqual(ids);
+  });
+
   it("processes an authenticated /start update and replies in the user's language", async () => {
     const bot = new Bot("123456:fake_token", {
       botId: fakeBotInfo.id,
@@ -376,7 +422,7 @@ describe("grammY Cloudflare webhook", () => {
   it("shows replied-to member personal stats in a Persian Rich Message", async () => {
     const bot = new Bot("123456:fake_token", {
       botId: fakeBotInfo.id,
-      database: testDatabase("fa", undefined, { score: 5, received: 7, removed: 2 }),
+      database: testDatabase("fa", undefined, { personalStats: { score: 5, received: 7, removed: 2 } }),
       plugins: [i18nMiddleware(), replyToMiddleware],
     });
     bot.registerHandlers(...handlers);

@@ -7,6 +7,7 @@ import { mediaHandlers } from "./admin/media";
 import { resetStatsCallbacks, resetStatsHandler } from "./admin/resetstats";
 import { setCooldownHandler } from "./admin/setcooldown";
 import { clownHandlers } from "./group/clown";
+import { clownMediaHandlers } from "./group/clown-media";
 import { clownOfTheDayHandler } from "./group/clownoftheday";
 import { personalStatsHandler } from "./group/mystats";
 import { statsHandler } from "./group/stats";
@@ -57,6 +58,7 @@ export const handlers: Handler[] = [
 
   // Groups
   ...clownHandlers,
+  ...clownMediaHandlers,
   statsHandler,
   personalStatsHandler,
   clownOfTheDayHandler,

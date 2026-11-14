@@ -162,6 +162,16 @@ cmd_removesticker_not_found =
 cmd_removesticker_done =
     👀 استیکر از لیست حذف شد.
 
+cmd_clown_gifs_empty =
+    😐 هنوز هیچ گیف دلقکی برای این گروه تنظیم نشده.
+
+    اول با /setgif چند گیف اضافه کن.
+
+cmd_clown_stickers_empty =
+    😐 هنوز هیچ استیکر دلقکی برای این گروه تنظیم نشده.
+
+    اول با /setsticker چند استیکر اضافه کن.
+
 cmd_setunclowngif =
     🪄 گیف کاستوم برای دلقک‌برداری!
 
@@ -314,7 +324,7 @@ help_admin_heading = تنظیمات مدیران
 help_admin_intro = مدیران گروه و مدیران تعیین‌شدهٔ بات می‌توانند این فرمان‌ها را در گروه اجرا کنند. ربات برای بررسی مدیران تلگرام باید اجازهٔ لازم را داشته باشد.
 help_set_cooldown = /setcooldown <دقیقه> — تنظیم مهلت رأی از ۰ تا ۶۰ دقیقه؛ پیش‌فرض ۱۰.
 help_reset_stats = /resetstats — شروع دورهٔ تازهٔ آمار؛ سابقهٔ رأی‌ها حذف نمی‌شود.
-help_custom_clown_media = رسانهٔ دلقک‌کردن: روی گیف/انیمیشن ریپلای کنید و /setgif بفرستید؛ برای استیکر از /setsticker استفاده کنید. حذف: /removegif یا /removesticker. از هر نوع حداکثر ۳ مورد.
+help_custom_clown_media = رسانهٔ دلقک‌کردن: روی گیف/انیمیشن ریپلای کنید و /setgif بفرستید؛ برای استیکر از /setsticker استفاده کنید. حذف: /removegif یا /removesticker. از هر نوع حداکثر ۳ مورد. همهٔ گیف‌ها را با /clowngifs و همهٔ استیکرها را با /clownstickers بفرستید.
 help_custom_unclown_media = رسانهٔ کم‌کردن امتیاز: روی گیف/انیمیشن ریپلای کنید و /setunclowngif بفرستید؛ برای استیکر از /setunclownsticker استفاده کنید. حذف: /removeunclowngif یا /removeunclownsticker. از هر نوع حداکثر ۳ مورد. برای اجرا، رسانهٔ ثبت‌شده را در پاسخ به پیام عضو هدف بفرستید.
 help_private_heading = گفت‌وگوی خصوصی
 help_language = /language — ذخیرهٔ زبان پاسخ‌ها (فارسی یا English).
