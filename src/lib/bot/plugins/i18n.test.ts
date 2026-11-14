@@ -5,14 +5,30 @@ import { translate } from "./i18n";
 const rightToLeftMark = "\u200f";
 
 describe("Persian right-to-left translation marks", () => {
-  it.each(["cmd_start", "help_title", "help_text_triggers", "help_footer", "cmd_privacy", "cmd_resetstats_confirm"])(
-    "marks every line of %s",
-    (key) => {
-      const text = translate("fa", key);
+  it.each([
+    "cmd_start",
+    "help_title",
+    "help_intro",
+    "help_button_personal_stats",
+    "help_personal_self",
+    "help_text_triggers",
+    "cmd_mystats_unavailable",
+    "cmd_privacy",
+    "cmd_resetstats_confirm",
+  ])("marks every line of %s", (key) => {
+    const text = translate("fa", key);
 
-      expect(text.split("\n").every((line) => line.startsWith(rightToLeftMark))).toBe(true);
-    },
-  );
+    expect(text.split("\n").every((line) => line.startsWith(rightToLeftMark))).toBe(true);
+  });
+
+  it.each([
+    ["cmd_mystats_title", { name: "کاربر" }],
+    ["cmd_mystats_score", { score: 5 }],
+  ])("marks dynamic personal stats message %s", (key, variables) => {
+    const text = translate("fa", key, variables);
+
+    expect(text.split("\n").every((line) => line.startsWith(rightToLeftMark))).toBe(true);
+  });
 
   it("marks newlines introduced by dynamic Fluent variables", () => {
     const text = translate("fa", "cmd_stats_group", {

@@ -99,6 +99,18 @@ const resetAggregate = await command(`SELECT coalesce(sum(quantity),0) AS count 
   WHERE group_id='${group}' AND voted_at >= ${dayStart + 86_400_000}`);
 if (resetAggregate[0].results[0].count !== 5) throw new Error("Statistics reset cutoff returned an unexpected total");
 
+await command(`INSERT INTO clown_votes(voter_id,clown_id,group_id,voted_at,quantity)
+  VALUES('${voter}','${clown}','${group}',${dayStart + 86_400_000 + 1_000},-2)`);
+const personalAggregate = await command(`SELECT
+    coalesce(sum(quantity),0) AS score,
+    coalesce(sum(case when quantity > 0 then quantity else 0 end),0) AS received,
+    coalesce(-sum(case when quantity < 0 then quantity else 0 end),0) AS removed
+  FROM clown_votes
+  WHERE group_id='${group}' AND clown_id='${clown}' AND voted_at >= ${dayStart + 86_400_000}`);
+const personalStats = personalAggregate[0].results[0];
+if (personalStats.score !== 3 || personalStats.received !== 5 || personalStats.removed !== 2)
+  throw new Error("Personal statistics did not match current group period and vote direction");
+
 console.log(
-  "D1 vote/daily-award concurrency, cooldown boundary, group isolation, UTC day boundary, statistics aggregate/reset, and 64-bit text IDs passed.",
+  "D1 vote/daily-award concurrency, cooldown boundary, group isolation, UTC day boundary, group/personal statistics, and 64-bit text IDs passed.",
 );

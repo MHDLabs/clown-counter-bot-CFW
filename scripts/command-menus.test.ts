@@ -21,6 +21,7 @@ describe("Telegram command menus", () => {
       "clown",
       "unclown",
       "stats",
+      "mystats",
       "clownoftheday",
       "setcooldown",
       "setgif",

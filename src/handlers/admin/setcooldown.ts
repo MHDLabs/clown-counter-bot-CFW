@@ -15,7 +15,7 @@ async function setCooldown(ctx: BotContext) {
   const args = msg.text?.split(/\s+/).slice(1).join(" ").trim();
 
   if (!args) {
-    return await ctx.reply(ctx.t("cmd_setcooldown_usage", { min: MIN_COOLDOWN, max: MAX_COOLDOWN }), {
+    return await ctx.richReply(ctx.t("cmd_setcooldown_usage", { min: MIN_COOLDOWN, max: MAX_COOLDOWN }), {
       reply_parameters: { message_id: msg.message_id, chat_id: msg.chat.id, allow_sending_without_reply: true },
     });
   }
@@ -23,13 +23,13 @@ async function setCooldown(ctx: BotContext) {
   const minutes = Number(args);
 
   if (Number.isNaN(minutes) || !Number.isInteger(minutes)) {
-    return await ctx.reply(ctx.t("cmd_setcooldown_invalid_number"), {
+    return await ctx.richReply(ctx.t("cmd_setcooldown_invalid_number"), {
       reply_parameters: { message_id: msg.message_id, chat_id: msg.chat.id, allow_sending_without_reply: true },
     });
   }
 
   if (minutes < MIN_COOLDOWN || minutes > MAX_COOLDOWN) {
-    return await ctx.reply(ctx.t("cmd_setcooldown_out_of_range", { min: MIN_COOLDOWN, max: MAX_COOLDOWN }), {
+    return await ctx.richReply(ctx.t("cmd_setcooldown_out_of_range", { min: MIN_COOLDOWN, max: MAX_COOLDOWN }), {
       reply_parameters: { message_id: msg.message_id, chat_id: msg.chat.id, allow_sending_without_reply: true },
     });
   }
@@ -44,7 +44,7 @@ async function setCooldown(ctx: BotContext) {
       set: { name: msg.chat.title, cooldown: cooldownMs },
     });
 
-  return await ctx.reply(ctx.t("cmd_setcooldown_done", { minutes }), {
+  return await ctx.richReply(ctx.t("cmd_setcooldown_done", { minutes }), {
     reply_parameters: { message_id: msg.message_id, chat_id: msg.chat.id, allow_sending_without_reply: true },
   });
 }

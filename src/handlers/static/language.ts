@@ -15,7 +15,7 @@ function languageKeyboard(ctx: BotContext) {
 
 async function showLanguagePanel(ctx: BotContext) {
   if (!ctx.from) return;
-  return await ctx.reply(ctx.t("cmd_language_prompt"), { reply_markup: languageKeyboard(ctx) });
+  return await ctx.richReply(ctx.t("cmd_language_prompt"), { reply_markup: languageKeyboard(ctx) });
 }
 
 async function chooseLanguage(ctx: BotContext, locale: "en" | "fa"): Promise<void> {
@@ -26,10 +26,18 @@ async function chooseLanguage(ctx: BotContext, locale: "en" | "fa"): Promise<voi
     .values({ userId: String(ctx.from.id), locale })
     .onConflictDoUpdate({ target: schema.userPreferences.userId, set: { locale } });
 
-  await ctx.answerCallbackQuery({ text: translate(locale, "cmd_language_saved") });
+  // This callback update has its own context; apply the newly selected locale for the edited message.
+  // eslint-disable-next-line require-atomic-updates
+  ctx.locale = locale;
+  await ctx.answerCallbackQuery();
 
   if (ctx.callbackQuery.message) {
-    await ctx.editMessageText(translate(locale, "cmd_language_saved"), { reply_markup: new InlineKeyboard() });
+    await ctx.editRichMessage({
+      chatId: ctx.callbackQuery.message.chat.id,
+      messageId: ctx.callbackQuery.message.message_id,
+      text: translate(locale, "cmd_language_saved"),
+      options: { reply_markup: new InlineKeyboard() },
+    });
   }
 }
 

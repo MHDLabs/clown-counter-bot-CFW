@@ -8,8 +8,9 @@ import { resetStatsCallbacks, resetStatsHandler } from "./admin/resetstats";
 import { setCooldownHandler } from "./admin/setcooldown";
 import { clownHandlers } from "./group/clown";
 import { clownOfTheDayHandler } from "./group/clownoftheday";
+import { personalStatsHandler } from "./group/mystats";
 import { statsHandler } from "./group/stats";
-import { helpHandler } from "./static/help";
+import { helpCallbacks, helpHandler } from "./static/help";
 import { languageCallbacks, languageHandler } from "./static/language";
 import { privacyHandler } from "./static/privacy";
 import { sourceHandler } from "./static/source";
@@ -48,6 +49,7 @@ export const handlers: Handler[] = [
   // Private chats
   startHandler,
   helpHandler,
+  ...helpCallbacks,
   languageHandler,
   sourceHandler,
   privacyHandler,
@@ -56,6 +58,7 @@ export const handlers: Handler[] = [
   // Groups
   ...clownHandlers,
   statsHandler,
+  personalStatsHandler,
   clownOfTheDayHandler,
 
   // Admins

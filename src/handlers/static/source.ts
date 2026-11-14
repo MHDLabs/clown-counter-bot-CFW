@@ -6,8 +6,7 @@ export const sourceHandler: CommandHandler = {
   description: "🪄 سورس‌کد ربات",
   scopes: [{ type: "all_private_chats" }],
   handler: async (ctx) => {
-    return await ctx.reply(ctx.t("cmd_source"), {
-      link_preview_options: { is_disabled: true },
+    return await ctx.richReply(ctx.t("cmd_source"), {
       ...(ctx.msg
         ? {
             reply_parameters: {

@@ -64,7 +64,7 @@ async function voteHandler(ctx: BotContext, quantity: -1 | 1) {
   if (!data) {
     if (ctx.message) {
       const prefix = quantity > 0 ? "cmd_clown" : "cmd_unclown";
-      return await ctx.reply(ctx.t(`${prefix}_usage`), {
+      return await ctx.richReply(ctx.t(`${prefix}_usage`), {
         reply_parameters: {
           message_id: ctx.message.message_id,
           chat_id: ctx.message.chat.id,
@@ -79,7 +79,7 @@ async function voteHandler(ctx: BotContext, quantity: -1 | 1) {
   const { messageId, group, voter, clown } = data;
   const prefix = quantity > 0 ? "cmd_clown" : "cmd_unclown";
   const reply = (text: string) =>
-    ctx.reply(text, {
+    ctx.richReply(text, {
       reply_parameters: { message_id: messageId, chat_id: group.id, allow_sending_without_reply: true },
     });
   const rejection = clown.id === ctx.meId ? "is_me" : clown.is_bot ? "is_bot" : voter.id === clown.id ? "is_you" : null;

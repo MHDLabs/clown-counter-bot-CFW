@@ -7,10 +7,11 @@ A Persian/English Telegram group bot for playful clown and unclown voting, group
 ## Features
 
 - `/clown` and `/unclown`, plus 🤡/دلقک and 😇/ستون text triggers; votes require replying to a group member.
-- `/help` provides detailed Persian/English usage instructions; `/language` saves each user's preferred reply language.
-- `/stats`, `/clownoftheday`, and admin-only `/resetstats`.
+- `/help` opens a Persian/English Rich Message guide with inline navigation buttons; `/language` saves each user's preferred reply language.
+- `/stats`, `/mystats` (self or a replied-to group member), `/clownoftheday`, and admin-only `/resetstats`.
 - Admin-only `/setcooldown`, `/setgif`, `/removegif`, `/setsticker`, `/removesticker`, `/setunclowngif`, `/removeunclowngif`, `/setunclownsticker`, and `/removeunclownsticker`.
 - Per-group vote history, media IDs, reset time, and cooldown settings. Fluent translations are retained in Persian.
+- Localized chat responses and inline-help pages use Telegram Rich Messages; Persian payloads enable right-to-left layout.
 
 `BOT_ADMIN_IDS` is a comma-separated list of Telegram numeric user IDs allowed to manage the bot's existing group settings (cooldown, custom media, and statistics reset) in groups where the bot is present. These users do not need to be Telegram group admins. Other users still need to be group admins, and all settings commands are checked server-side. This allowlist grants no Cloudflare or database console access. IDs are configured in `wrangler.jsonc` as ordinary Worker variables, not secrets.
 

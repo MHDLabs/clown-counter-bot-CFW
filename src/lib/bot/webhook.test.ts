@@ -7,12 +7,24 @@ import { handlers } from "@/handlers";
 import { sourceHandler } from "@/handlers/static/source";
 import { Bot, i18nMiddleware, replyToMiddleware } from "@/lib/bot";
 
-function testDatabase(locale?: "en" | "fa", onLocaleSaved?: (locale: "en" | "fa") => void) {
+function testDatabase(
+  locale?: "en" | "fa",
+  onLocaleSaved?: (locale: "en" | "fa") => void,
+  personalStats = { score: 0, received: 0, removed: 0 },
+) {
   return {
-    query: { userPreferences: { findFirst: async () => (locale ? { locale } : undefined) } },
+    query: {
+      userPreferences: { findFirst: async () => (locale ? { locale } : undefined) },
+      groups: { findFirst: async () => undefined },
+    },
     insert: () => ({
       values: (row: { locale: "en" | "fa" }) => ({
         onConflictDoUpdate: async () => onLocaleSaved?.(row.locale),
+      }),
+    }),
+    select: () => ({
+      from: () => ({
+        where: async () => [personalStats],
       }),
     }),
   } as unknown as AppDb;
@@ -48,7 +60,7 @@ describe("grammY Cloudflare webhook", () => {
       const result =
         method === "getMe"
           ? fakeBotInfo
-          : method === "sendMessage"
+          : method === "sendRichMessage"
             ? {
                 message_id: 2,
                 date: 1,
@@ -80,9 +92,9 @@ describe("grammY Cloudflare webhook", () => {
 
     expect(response.status).toBe(200);
 
-    const sendMessage = calls.find((call) => call.method === "sendMessage");
+    const sendRichMessage = calls.find((call) => call.method === "sendRichMessage");
 
-    expect(sendMessage?.payload["text"]).toContain("Welcome!");
+    expect(JSON.stringify(sendRichMessage?.payload["rich_message"])).toContain("Welcome!");
   });
 
   it("processes an authenticated /source update with a mocked Telegram API", async () => {
@@ -98,7 +110,7 @@ describe("grammY Cloudflare webhook", () => {
       const result =
         method === "getMe"
           ? fakeBotInfo
-          : method === "sendMessage"
+          : method === "sendRichMessage"
             ? {
                 message_id: 2,
                 date: 1,
@@ -129,9 +141,11 @@ describe("grammY Cloudflare webhook", () => {
 
     expect(response.status).toBe(200);
 
-    const sendMessage = calls.find((call) => call.method === "sendMessage");
+    const sendRichMessage = calls.find((call) => call.method === "sendRichMessage");
 
-    expect(sendMessage?.payload["text"]).toContain("github.com/MHDLabs/clown-counter-bot-CFW");
+    expect(JSON.stringify(sendRichMessage?.payload["rich_message"])).toContain(
+      "github.com/MHDLabs/clown-counter-bot-CFW",
+    );
   });
 
   it("explains that group /clown requires replying to a target instead of staying silent", async () => {
@@ -168,10 +182,10 @@ describe("grammY Cloudflare webhook", () => {
 
     expect(response.status).toBe(200);
 
-    const sendMessage = calls.find((call) => call.method === "sendMessage");
+    const sendRichMessage = calls.find((call) => call.method === "sendRichMessage");
 
-    expect(sendMessage?.payload["text"]).toContain("Reply to a group member's message");
-    expect(sendMessage?.payload["reply_parameters"]).toMatchObject({
+    expect(JSON.stringify(sendRichMessage?.payload["rich_message"])).toContain("Reply to a group member's message");
+    expect(sendRichMessage?.payload["reply_parameters"]).toMatchObject({
       message_id: 4,
       chat_id: -100123,
       allow_sending_without_reply: true,
@@ -211,10 +225,10 @@ describe("grammY Cloudflare webhook", () => {
 
     expect(response.status).toBe(200);
 
-    const sendMessage = calls.find((call) => call.method === "sendMessage");
+    const sendRichMessage = calls.find((call) => call.method === "sendRichMessage");
 
-    expect(sendMessage?.payload["text"]).toContain("زبان پاسخ‌های ربات را انتخاب کنید");
-    expect(sendMessage?.payload["reply_markup"]).toMatchObject({
+    expect(JSON.stringify(sendRichMessage?.payload["rich_message"])).toContain("زبان پاسخ‌های ربات را انتخاب کنید");
+    expect(sendRichMessage?.payload["reply_markup"]).toMatchObject({
       inline_keyboard: [[{ text: "\u200Fفارسی" }, { text: "\u200FEnglish" }]],
     });
   });
@@ -296,9 +310,9 @@ describe("grammY Cloudflare webhook", () => {
     expect(response.status).toBe(200);
     expect(calls.some((call) => call.method === "getChatMember")).toBe(false);
 
-    const sendMessage = calls.find((call) => call.method === "sendMessage");
+    const sendRichMessage = calls.find((call) => call.method === "sendRichMessage");
 
-    const sentText = String(sendMessage?.payload["text"]).replace(/[\u2066-\u2069]/g, "");
+    const sentText = String(JSON.stringify(sendRichMessage?.payload["rich_message"])).replace(/[\u2066-\u2069]/g, "");
 
     expect(sentText).toContain("Voting cooldown set to 5");
   });
@@ -349,8 +363,117 @@ describe("grammY Cloudflare webhook", () => {
     expect(richMessage?.blocks.map((block) => block.type)).toContain("list");
     expect(richMessage?.blocks.map((block) => block.type)).toContain("divider");
     expect(payloadText).toContain(expected);
-    expect(payloadText).toContain(locale === "en" ? "/clownoftheday" : "/setcooldown");
+    expect(payloadText).toContain("/mystats");
     expect(sendRichMessage?.payload["reply_parameters"]).toMatchObject({ message_id: 6 });
+    expect(sendRichMessage?.payload["reply_markup"]).toMatchObject({
+      inline_keyboard: expect.arrayContaining([
+        expect.arrayContaining([expect.objectContaining({ callback_data: "help:personal" })]),
+      ]),
+    });
     expect(payloadText.includes("\u200f")).toBe(locale === "fa");
+  });
+
+  it("shows replied-to member personal stats in a Persian Rich Message", async () => {
+    const bot = new Bot("123456:fake_token", {
+      botId: fakeBotInfo.id,
+      database: testDatabase("fa", undefined, { score: 5, received: 7, removed: 2 }),
+      plugins: [i18nMiddleware(), replyToMiddleware],
+    });
+    bot.registerHandlers(...handlers);
+    const calls: { method: string; payload: Record<string, unknown> }[] = [];
+    bot.api.config.use(async (_previous, method, payload) => {
+      calls.push({ method, payload });
+      return { ok: true, result: method === "getMe" ? fakeBotInfo : true } as never;
+    });
+    const webhook = webhookCallback(bot, "cloudflare-mod", { secretToken: "test-webhook-secret" });
+    const response = await webhook(
+      new Request("https://bot.test/telegram", {
+        method: "POST",
+        headers: { "content-type": "application/json", "X-Telegram-Bot-Api-Secret-Token": "test-webhook-secret" },
+        body: JSON.stringify({
+          update_id: 8,
+          message: {
+            message_id: 8,
+            from: { id: 10, is_bot: false, first_name: "Test", language_code: "en" },
+            chat: { id: -100123, type: "supergroup", title: "Test group" },
+            date: 1,
+            text: "/mystats",
+            entities: [{ offset: 0, length: 8, type: "bot_command" }],
+            reply_to_message: {
+              message_id: 7,
+              from: { id: 11, is_bot: false, first_name: "Rival", language_code: "fa" },
+              chat: { id: -100123, type: "supergroup", title: "Test group" },
+              date: 1,
+              text: "Target message",
+            },
+          },
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+
+    const statsCall = calls.find((call) => call.method === "sendRichMessage");
+    const richMessage = statsCall?.payload["rich_message"] as { blocks: unknown[]; is_rtl: boolean } | undefined;
+    const payloadText = JSON.stringify(richMessage);
+
+    expect(richMessage?.is_rtl).toBe(true);
+    expect(payloadText).toContain("Rival");
+    expect(payloadText).toContain("امتیاز خالص");
+    expect(payloadText).toContain("امتیازهای اضافه‌شده");
+    expect(payloadText).toContain("امتیازهای کم‌شده");
+    expect(statsCall?.payload["reply_parameters"]).toMatchObject({ message_id: 8, chat_id: -100123 });
+  });
+
+  it("opens a help category by editing the existing message as a Persian Rich Message", async () => {
+    const bot = new Bot("123456:fake_token", {
+      botId: fakeBotInfo.id,
+      database: testDatabase("fa"),
+      plugins: [i18nMiddleware(), replyToMiddleware],
+    });
+    bot.registerHandlers(...handlers);
+    const calls: { method: string; payload: Record<string, unknown> }[] = [];
+    bot.api.config.use(async (_previous, method, payload) => {
+      calls.push({ method, payload });
+      return { ok: true, result: method === "getMe" ? fakeBotInfo : true } as never;
+    });
+    const webhook = webhookCallback(bot, "cloudflare-mod", { secretToken: "test-webhook-secret" });
+    const response = await webhook(
+      new Request("https://bot.test/telegram", {
+        method: "POST",
+        headers: { "content-type": "application/json", "X-Telegram-Bot-Api-Secret-Token": "test-webhook-secret" },
+        body: JSON.stringify({
+          update_id: 9,
+          callback_query: {
+            id: "help-category",
+            from: { id: 10, is_bot: false, first_name: "Test", language_code: "en" },
+            chat_instance: "test-instance",
+            data: "help:personal",
+            message: {
+              message_id: 9,
+              date: 1,
+              chat: { id: -100123, type: "supergroup", title: "Test group" },
+              text: "help panel",
+            },
+          },
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(calls.map((call) => call.method)).toContain("answerCallbackQuery");
+
+    const editCall = calls.find((call) => call.method === "editMessageText");
+    const richMessage = editCall?.payload["rich_message"] as { blocks: unknown[]; is_rtl: boolean } | undefined;
+    const payloadText = JSON.stringify(richMessage);
+
+    expect(richMessage?.is_rtl).toBe(true);
+    expect(payloadText).toContain("/mystats");
+    expect(payloadText).toContain("دیدن امتیاز");
+    expect(editCall?.payload["reply_markup"]).toMatchObject({
+      inline_keyboard: expect.arrayContaining([
+        expect.arrayContaining([expect.objectContaining({ callback_data: "help:home" })]),
+      ]),
+    });
   });
 });

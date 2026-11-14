@@ -27,6 +27,7 @@ export const commandMenus = {
     { command: "clown", description: "Vote clown for replied member" },
     { command: "unclown", description: "Lower clown score of replied member" },
     { command: "stats", description: "Show group statistics" },
+    { command: "mystats", description: "Show personal group statistics" },
     { command: "clownoftheday", description: "Choose clown of the day" },
     ...settingsCommands,
   ],
