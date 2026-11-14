@@ -20,31 +20,29 @@ A Persian/English Telegram group bot for fun: clown voting, group statistics, cu
 
 ## 🤖 Commands
 
-| Command | Description |
-| --- | --- |
-| `/start` | Start the bot |
-| `/help` | Open the interactive guide |
-| `/language` | Choose Persian or English |
-| `/clown` | Increase the replied member's clown score |
-| `/unclown` | Decrease the replied member's clown score |
-| `/stats` | Show group statistics |
-| `/mystats` | Show your stats; reply to a member to view theirs |
-| `/clownoftheday` | Pick the clown of the day |
-| `/clowngifs` | Send the group's saved GIFs |
-| `/clownstickers` | Send the group's saved stickers |
-| `/privacy` | Show privacy information |
-| `/source` | Show the project source |
+### General and group commands
+
+- `/start`: Start the bot
+- `/help`: Open the interactive guide
+- `/language`: Choose Persian or English
+- `/clown`: Increase the replied member's clown score
+- `/unclown`: Decrease the replied member's clown score
+- `/stats`: Show group statistics
+- `/mystats`: Show your stats; reply to a member to view theirs
+- `/clownoftheday`: Pick the clown of the day
+- `/clowngifs`: Send the group's saved GIFs
+- `/clownstickers`: Send the group's saved stickers
+- `/privacy`: Show privacy information
+- `/source`: Show the project source
 
 ### Group-admin commands
 
-| Command | Description |
-| --- | --- |
-| `/setcooldown <minutes>` | Set the vote cooldown, from 0 to 60 minutes |
-| `/setgif` / `/removegif` | Add or remove a clown GIF by replying to it |
-| `/setsticker` / `/removesticker` | Add or remove a clown sticker by replying to it |
-| `/setunclowngif` / `/removeunclowngif` | Add or remove an unclown GIF |
-| `/setunclownsticker` / `/removeunclownsticker` | Add or remove an unclown sticker |
-| `/resetstats` | Start the group statistics reset flow |
+- `/setcooldown <minutes>`: Set the vote cooldown, from 0 to 60 minutes
+- `/setgif` and `/removegif`: Add or remove a clown GIF by replying to it
+- `/setsticker` and `/removesticker`: Add or remove a clown sticker by replying to it
+- `/setunclowngif` and `/removeunclowngif`: Add or remove an unclown GIF
+- `/setunclownsticker` and `/removeunclownsticker`: Add or remove an unclown sticker
+- `/resetstats`: Start the group statistics reset flow
 
 Reply to the target member's message when voting. To add or remove media, reply to the GIF or sticker with the corresponding command. Up to three media items of each type can be stored per group.
 

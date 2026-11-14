@@ -20,31 +20,29 @@
 
 ## 🤖 دستورها
 
-| دستور | کاربرد |
-| --- | --- |
-| `/start` | شروع کار با ربات |
-| `/help` | راهنمای تعاملی |
-| `/language` | انتخاب زبان فارسی یا انگلیسی |
-| `/clown` | افزایش امتیاز دلقک عضو Reply‌شده |
-| `/unclown` | کاهش امتیاز دلقک عضو Reply‌شده |
-| `/stats` | نمایش آمار گروه |
-| `/mystats` | آمار خودتان؛ با Reply برای مشاهده آمار عضو دیگر |
-| `/clownoftheday` | انتخاب دلقک روز |
-| `/clowngifs` | ارسال GIFهای ذخیره‌شده گروه |
-| `/clownstickers` | ارسال استیکرهای ذخیره‌شده گروه |
-| `/privacy` | اطلاعات حریم خصوصی |
-| `/source` | نمایش سورس پروژه |
+### عمومی و گروهی
+
+- `/start`: شروع کار با ربات
+- `/help`: راهنمای تعاملی
+- `/language`: انتخاب زبان فارسی یا انگلیسی
+- `/clown`: افزایش امتیاز دلقک عضو Reply‌شده
+- `/unclown`: کاهش امتیاز دلقک عضو Reply‌شده
+- `/stats`: نمایش آمار گروه
+- `/mystats`: آمار خودتان؛ با Reply برای مشاهده آمار عضو دیگر
+- `/clownoftheday`: انتخاب دلقک روز
+- `/clowngifs`: ارسال GIFهای ذخیره‌شده گروه
+- `/clownstickers`: ارسال استیکرهای ذخیره‌شده گروه
+- `/privacy`: اطلاعات حریم خصوصی
+- `/source`: نمایش سورس پروژه
 
 ### دستورهای مدیران گروه
 
-| دستور | کاربرد |
-| --- | --- |
-| `/setcooldown <minutes>` | تنظیم فاصله رأی‌ها؛ از ۰ تا ۶۰ دقیقه |
-| `/setgif` / `/removegif` | افزودن یا حذف GIF دلقک با Reply به رسانه |
-| `/setsticker` / `/removesticker` | افزودن یا حذف استیکر دلقک با Reply |
-| `/setunclowngif` / `/removeunclowngif` | افزودن یا حذف GIF رأی معکوس |
-| `/setunclownsticker` / `/removeunclownsticker` | افزودن یا حذف استیکر رأی معکوس |
-| `/resetstats` | شروع فرایند بازنشانی آمار گروه |
+- `/setcooldown <minutes>`: تنظیم فاصله رأی‌ها؛ از ۰ تا ۶۰ دقیقه
+- `/setgif` و `/removegif`: افزودن یا حذف GIF دلقک با Reply به رسانه
+- `/setsticker` و `/removesticker`: افزودن یا حذف استیکر دلقک با Reply
+- `/setunclowngif` و `/removeunclowngif`: افزودن یا حذف GIF رأی معکوس
+- `/setunclownsticker` و `/removeunclownsticker`: افزودن یا حذف استیکر رأی معکوس
+- `/resetstats`: شروع فرایند بازنشانی آمار گروه
 
 برای رأی‌دادن، دستور را در پاسخ به پیام عضو موردنظر ارسال کنید. برای افزودن یا حذف رسانه نیز دستور مربوط را در Reply به همان GIF یا استیکر بفرستید. حداکثر سه رسانه از هر نوع برای هر گروه ذخیره می‌شود.
 
@@ -132,6 +130,8 @@ WORKER_URL=https://<worker>.<subdomain>.workers.dev BOT_TOKEN=<your-token> pnpm 
 این اسکریپت webhook را روی مسیر `/telegram` تنظیم می‌کند و منوی دستورهای تلگرام را ثبت می‌کند. در پایان، آدرس `https://<worker>.<subdomain>.workers.dev/health` باید پاسخ `{"ok":true}` بدهد.
 
 ## 💻 توسعه محلی
+
+فایل نمونه را کپی کنید:
 
 ```sh
 cp .dev.vars.example .dev.vars
