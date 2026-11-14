@@ -26,6 +26,15 @@ function matchMedia(group: GroupMedia, fileId: string, legacyId: string | null):
   return null;
 }
 
+function hasLegacyMediaIds(group: GroupMedia): boolean {
+  return [
+    ...(group.gifIds ?? []),
+    ...(group.stickerIds ?? []),
+    ...(group.unclownGifIds ?? []),
+    ...(group.unclownStickerIds ?? []),
+  ].some(isLegacyMediaId);
+}
+
 async function matchMediaCall(ctx: BotContext): Promise<ClownCall | null> {
   const fileId = ctx.msg?.animation?.file_id ?? ctx.msg?.sticker?.file_id;
 
@@ -39,13 +48,7 @@ async function matchMediaCall(ctx: BotContext): Promise<ClownCall | null> {
 
   if (!group) return null;
 
-  const hasLegacyIds = [
-    ...(group.gifIds ?? []),
-    ...(group.stickerIds ?? []),
-    ...(group.unclownGifIds ?? []),
-    ...(group.unclownStickerIds ?? []),
-  ].some(isLegacyMediaId);
-  const legacyId = hasLegacyIds ? getLegacyMediaId(fileId) : null;
+  const legacyId = hasLegacyMediaIds(group) ? getLegacyMediaId(fileId) : null;
 
   return matchMedia(group, fileId, legacyId);
 }
