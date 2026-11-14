@@ -13,7 +13,7 @@ A Persian/English Telegram group bot for playful clown and unclown voting, group
 - Per-group vote history, media IDs, reset time, and cooldown settings. Fluent translations are retained in Persian.
 - Localized chat responses and inline-help pages use Telegram Rich Messages; Persian payloads enable right-to-left layout.
 
-`BOT_ADMIN_IDS` is a comma-separated list of Telegram numeric user IDs allowed to manage the bot's existing group settings (cooldown, custom media, and statistics reset) in groups where the bot is present. These users do not need to be Telegram group admins. Other users still need to be group admins, and all settings commands are checked server-side. This allowlist grants no Cloudflare or database console access. IDs are configured in `wrangler.jsonc` as ordinary Worker variables, not secrets.
+`BOT_ADMIN_IDS` is an optional, per-install comma-separated list of Telegram numeric user IDs allowed to manage the bot's existing group settings (cooldown, custom media, and statistics reset) in groups where the bot is present. It is empty by default; leave it empty to require Telegram group-admin status. Configure only your own IDs in your own Worker settings or `wrangler.jsonc`. The public template contains no maintainer-specific IDs. This allowlist grants no Cloudflare or database console access.
 
 ## Architecture
 
@@ -25,7 +25,7 @@ The app uses the Workers Fetch API and Web Crypto and does not require Node comp
 
 ## Deploy your own copy
 
-Use the Deploy to Cloudflare button above. Cloudflare provisions a Worker and D1 database from `wrangler.jsonc`; provide your own Telegram bot token as the Worker secret. This creates and deploys your copy in your own Cloudflare account. It does not access the maintainer's account or GitHub Actions secrets.
+Use the Deploy to Cloudflare button above. Cloudflare clones the public repository into your GitHub account and provisions a Worker and D1 database in your Cloudflare account from `wrangler.jsonc`; resource names and values are scoped to your deployment. Enter your own Telegram bot token when prompted as the `BOT_TOKEN` Worker secret. `BOT_ADMIN_IDS` starts empty and can be set to your own comma-separated numeric IDs, or left empty so only Telegram group admins can change group settings. The configured `deploy` script applies this copy's D1 migrations before deploying its Worker. This flow does not access the maintainer's Cloudflare account or GitHub Actions secrets.
 
 After the deployment finishes, register the Telegram webhook and command menu from a local checkout with dependencies installed, using the deployed Worker URL and the same bot token. The exact `pnpm set:webhook` command is shown below.
 
@@ -37,10 +37,9 @@ pnpm install
 pnpm exec wrangler d1 create clown-counter-db
 ```
 
-Set the returned database ID in `wrangler.jsonc`, then apply the checked-in migration and deploy:
+Set the returned database ID in `wrangler.jsonc`, optionally set your own `BOT_ADMIN_IDS`, then deploy. The deploy script applies the checked-in migration first:
 
 ```sh
-pnpm db:migrate:prod
 pnpm exec wrangler secret put BOT_TOKEN
 pnpm deploy
 WORKER_URL=https://<your-worker>.<your-subdomain>.workers.dev BOT_TOKEN=<your-token> pnpm set:webhook
@@ -63,9 +62,9 @@ Wrangler uses its local D1 database for `pnpm dev`. The committed SQLite migrati
 
 ## Maintainer automatic deployment
 
-The GitHub Actions production deployment is separate from the public button. It runs only for `MHDLabs/clown-counter-bot-CFW` on `main`, after validation succeeds. On the first run it creates `clown-counter-db` if it does not exist; later runs resolve and reuse that database. It applies pending migrations, deploys the Worker, stores `BOT_TOKEN` as a Worker secret, and registers the webhook. It never deletes or resets production data.
+The GitHub Actions production deployment is separate from the public button. It runs only when the repository is exactly `MHDLabs/clown-counter-bot-CFW`, the ref is `main`, and validation succeeds. On the first run it creates `clown-counter-db` if it does not exist; later runs resolve and reuse that database. It applies pending migrations, deploys the Worker, stores `BOT_TOKEN` as a Worker secret, and registers the webhook. It never deletes or resets production data. Forks and pull requests run validation only; their workflow receives only read access to repository contents and cannot enter the production job or access the original repository's deployment secrets.
 
-Configure these repository Actions secrets: `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` (Worker deployment plus D1 list, create, and migration permissions), and `BOT_TOKEN`. The workflow also supports manual runs with `workflow_dispatch`. Forks and pull requests run validation only and cannot enter the deployment job.
+Make these Actions secrets available to the production job (prefer the `production` environment): `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` (Worker deployment plus D1 list, create, and migration permissions), and `BOT_TOKEN`. The workflow also supports manual runs with `workflow_dispatch`; the same repository/ref guard still applies. GitHub Actions are pinned to immutable SHAs on Node 24-compatible releases, and jobs use the fixed `ubuntu-24.04` runner to avoid floating-image migration warnings.
 
 ## Security and troubleshooting
 

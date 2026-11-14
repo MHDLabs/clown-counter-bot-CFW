@@ -279,7 +279,7 @@ describe("grammY Cloudflare webhook", () => {
     const bot = new Bot("123456:fake_token", {
       botId: fakeBotInfo.id,
       database: testDatabase(),
-      botAdminIds: new Set(["7141112393"]),
+      botAdminIds: new Set(["42424242"]),
       plugins: [i18nMiddleware(), replyToMiddleware],
     });
     bot.registerHandlers(...handlers);
@@ -297,7 +297,7 @@ describe("grammY Cloudflare webhook", () => {
           update_id: 7,
           message: {
             message_id: 7,
-            from: { id: 7141112393, is_bot: false, first_name: "Bot Admin", language_code: "en" },
+            from: { id: 42424242, is_bot: false, first_name: "Bot Admin", language_code: "en" },
             chat: { id: -100123, type: "supergroup", title: "Test group" },
             date: 1,
             text: "/setcooldown 5",

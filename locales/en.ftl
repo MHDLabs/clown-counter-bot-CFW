@@ -1,6 +1,9 @@
 cmd_start = Welcome! I keep playful clown scores for your group. Add me to a group and reply to someone's message with /clown or 🤡 to vote. You can also reply with “clown” or 🤡 if I can see group messages. Change your language with /language. Privacy: /privacy | Source: /source
 cmd_privacy = Privacy: I store only the group and user IDs/names needed for scores, vote times, group settings, custom media identifiers, and your selected language. I do not keep a message history. The source is available with /source.
-cmd_source = Clown Counter is open source. Repository: https://github.com/MHDLabs/clown-counter-bot-CFW
+cmd_source =
+    The Clown Counter source code is publicly viewable at the repository below. The repository currently has no LICENSE file, so reuse, modification, and redistribution terms have not been specified.
+
+    Repository: https://github.com/MHDLabs/clown-counter-bot-CFW
 cmd_language_prompt = Choose the language for your bot replies:
 cmd_language_persian = فارسی
 cmd_language_english = English

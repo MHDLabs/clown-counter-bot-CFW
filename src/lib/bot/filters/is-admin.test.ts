@@ -48,8 +48,8 @@ describe("isAdmin", () => {
     });
     const ctx = {
       chat: { id: -100 },
-      from: { id: 7141112393 },
-      botAdminIds: new Set(["7141112393"]),
+      from: { id: 42424242 },
+      botAdminIds: new Set(["42424242"]),
       getAuthor,
     } as unknown as BotContext;
 
