@@ -6,11 +6,7 @@ import type { BotContext } from "@/lib/bot";
 import type { GroupPatch } from "@/lib/utils";
 
 import { isAdmin } from "@/lib/bot";
-import {
-  getLegacyMediaId,
-  getSendableMediaIds,
-  matchesStoredMediaId,
-} from "@/lib/file-id/storage";
+import { getLegacyMediaId, getSendableMediaIds, matchesStoredMediaId } from "@/lib/file-id/storage";
 import { saveGroup } from "@/lib/utils";
 
 type FilesOfGroup = Pick<

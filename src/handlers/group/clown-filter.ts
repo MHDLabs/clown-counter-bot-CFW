@@ -2,11 +2,7 @@ import type { MiddlewareFn } from "grammy";
 
 import type { BotContext, ClownCall } from "@/lib/bot";
 
-import {
-  getLegacyMediaId,
-  isLegacyMediaId,
-  matchesStoredMediaId,
-} from "@/lib/file-id/storage";
+import { getLegacyMediaId, isLegacyMediaId, matchesStoredMediaId } from "@/lib/file-id/storage";
 
 const clownTexts = ["🤡", "دلقک"];
 const unclownTexts = ["😇", "ستون", "آدم عاقل"];
@@ -44,10 +40,10 @@ async function matchMediaCall(ctx: BotContext): Promise<ClownCall | null> {
   if (!group) return null;
 
   const hasLegacyIds = [
-    ... (group.gifIds ?? []),
-    ... (group.stickerIds ?? []),
-    ... (group.unclownGifIds ?? []),
-    ... (group.unclownStickerIds ?? []),
+    ...(group.gifIds ?? []),
+    ...(group.stickerIds ?? []),
+    ...(group.unclownGifIds ?? []),
+    ...(group.unclownStickerIds ?? []),
   ].some(isLegacyMediaId);
   const legacyId = hasLegacyIds ? getLegacyMediaId(fileId) : null;
 

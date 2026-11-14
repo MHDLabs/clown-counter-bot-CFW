@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  getSendableMediaIds,
-  isLegacyMediaId,
-  matchesStoredMediaId,
-} from "./storage";
+import { getSendableMediaIds, isLegacyMediaId, matchesStoredMediaId } from "./storage";
 
 describe("Telegram media ID storage compatibility", () => {
   const telegramFileId = "AgACAgQAAxkBAAIBY2VydGlmaWVkLWZpbGUtaWQ";
