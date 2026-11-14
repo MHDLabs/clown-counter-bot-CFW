@@ -1,75 +1,192 @@
-# Clown Counter Bot
+# 🤡 ربات دلقک‌شمار
 
-A Persian/English Telegram group bot for playful clown and unclown voting, group statistics, custom media, and group settings.
+یک ربات تلگرام فارسی/انگلیسی برای سرگرمی در گروه‌ها؛ رأی دلقک، آمار گروه، رسانه‌های سفارشی و چند ابزار مدیریتی ساده.
+
+> [!NOTE]
+> این ربات صرفاً برای سرگرمی ساخته شده است. امتیازها و عنوان‌های آن واقعی یا معیار ارزش‌گذاری افراد نیستند. از ربات برای آزار، تحقیر یا هدف‌گرفتن اعضای گروه استفاده نکنید.
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/MHDLabs/clown-counter-bot-CFW)
 
-## Features
+## ✨ قابلیت‌ها
 
-- `/clown` and `/unclown`, plus 🤡/دلقک and 😇/ستون text triggers; votes require replying to a group member.
-- `/help` opens a Persian/English Rich Message guide with inline navigation buttons; `/language` saves each user's preferred reply language.
-- `/stats`, `/mystats` (self or a replied-to group member), `/clownoftheday`, and admin-only `/resetstats`.
-- Admin-only `/setcooldown`, `/setgif`, `/removegif`, `/setsticker`, `/removesticker`, `/setunclowngif`, `/removeunclowngif`, `/setunclownsticker`, and `/removeunclownsticker`.
-- Per-group vote history, media IDs, reset time, and cooldown settings. Fluent translations are retained in Persian.
-- Localized chat responses and inline-help pages use Telegram Rich Messages; Persian payloads enable right-to-left layout.
+- رأی مثبت و منفی با دستورهای `/clown` و `/unclown`؛ پیام هدف را در گروه Reply کنید.
+- پشتیبانی از واکنش‌های متنی و ایموجی 🤡 و 😇.
+- راهنمای تعاملی فارسی/انگلیسی با `/help` و انتخاب زبان با `/language`.
+- آمار گروه با `/stats`، آمار شخصی با `/mystats` و انتخاب دلقک روز با `/clownoftheday`.
+- رسانه‌های اختصاصی هر گروه؛ GIF و استیکر برای رأی دلقک و رأی معکوس.
+- ارسال رسانه‌های ذخیره‌شده با `/clowngifs` و `/clownstickers`.
+- تنظیم زمان انتظار رأی و بازنشانی دوره‌ای آمار توسط مدیران گروه.
+- پاسخ‌های فارسی راست‌چین و ترجمه‌های انگلیسی.
 
-`BOT_ADMIN_IDS` is an optional, per-install comma-separated list of Telegram numeric user IDs allowed to manage the bot's existing group settings (cooldown, custom media, and statistics reset) in groups where the bot is present. It is empty by default; leave it empty to require Telegram group-admin status. Configure only your own IDs in your own Worker settings or `wrangler.jsonc`. The public template contains no maintainer-specific IDs. This allowlist grants no Cloudflare or database console access.
+## 🤖 دستورها
 
-## Architecture
+| دستور | کاربرد |
+| --- | --- |
+| `/start` | شروع کار با ربات |
+| `/help` | راهنمای تعاملی |
+| `/language` | انتخاب زبان فارسی یا انگلیسی |
+| `/clown` | افزایش امتیاز دلقک عضو Reply‌شده |
+| `/unclown` | کاهش امتیاز دلقک عضو Reply‌شده |
+| `/stats` | نمایش آمار گروه |
+| `/mystats` | آمار خودتان؛ با Reply برای مشاهده آمار عضو دیگر |
+| `/clownoftheday` | انتخاب دلقک روز |
+| `/clowngifs` | ارسال GIFهای ذخیره‌شده گروه |
+| `/clownstickers` | ارسال استیکرهای ذخیره‌شده گروه |
+| `/privacy` | اطلاعات حریم خصوصی |
+| `/source` | نمایش سورس پروژه |
 
-One Cloudflare Worker receives Telegram webhooks through grammY's `cloudflare-mod` adapter. One D1 database is the authoritative store, accessed through Drizzle's D1 adapter. SQLite stores Telegram identifiers as decimal text so their precision is retained. Vote creation is a conditional SQLite `INSERT` that enforces cooldown in one atomic statement; concurrent webhook deliveries cannot both pass the same cooldown check. No KV or Durable Object is required.
+### دستورهای مدیران گروه
 
-Technology stack: TypeScript, Cloudflare Workers Fetch API, grammY, Drizzle ORM, D1/SQLite, Fluent, Wrangler, pnpm, and GitHub Actions.
+| دستور | کاربرد |
+| --- | --- |
+| `/setcooldown <minutes>` | تنظیم فاصله رأی‌ها؛ از ۰ تا ۶۰ دقیقه |
+| `/setgif` / `/removegif` | افزودن یا حذف GIF دلقک با Reply به رسانه |
+| `/setsticker` / `/removesticker` | افزودن یا حذف استیکر دلقک با Reply |
+| `/setunclowngif` / `/removeunclowngif` | افزودن یا حذف GIF رأی معکوس |
+| `/setunclownsticker` / `/removeunclownsticker` | افزودن یا حذف استیکر رأی معکوس |
+| `/resetstats` | شروع فرایند بازنشانی آمار گروه |
 
-The app uses the Workers Fetch API and Web Crypto and does not require Node compatibility. A webhook secret is derived from the bot token; requests must carry Telegram's matching `X-Telegram-Bot-Api-Secret-Token` header. `/health` is a simple Worker health response. The configuration uses one Worker and one D1 database and only Cloudflare Workers/D1 resources; check current plan limits for your account before unusually high-volume use.
+برای رأی‌دادن، دستور را در پاسخ به پیام عضو موردنظر ارسال کنید. برای افزودن یا حذف رسانه نیز دستور مربوط را در Reply به همان GIF یا استیکر بفرستید. حداکثر سه رسانه از هر نوع برای هر گروه ذخیره می‌شود.
 
-## Deploy your own copy
+## 🚀 راه‌اندازی با دکمه Cloudflare
 
-Use the Deploy to Cloudflare button above. Cloudflare clones the public repository into your GitHub account and provisions a Worker and D1 database in your Cloudflare account from `wrangler.jsonc`; resource names and values are scoped to your deployment. Enter your own Telegram bot token when prompted as the `BOT_TOKEN` Worker secret. `BOT_ADMIN_IDS` starts empty and can be set to your own comma-separated numeric IDs, or left empty so only Telegram group admins can change group settings. The configured `deploy` script applies this copy's D1 migrations before deploying its Worker. This flow does not access the maintainer's Cloudflare account or GitHub Actions secrets.
+این روش برای ساخت یک نسخه مستقل از ربات در حساب‌های خودتان است.
 
-After the deployment finishes, register the Telegram webhook and command menu from a local checkout with dependencies installed, using the deployed Worker URL and the same bot token. The exact `pnpm set:webhook` command is shown below.
+1. روی دکمه **Deploy to Cloudflare** بالای همین صفحه بزنید.
+2. وارد حساب Cloudflare شوید و مراحل ساخت پروژه را ادامه دهید.
+3. مخزن را در حساب GitHub خودتان ایجاد کنید و تنظیمات Worker و D1 را در فرایند Deploy بررسی کنید.
+4. از [@BotFather](https://t.me/BotFather) یک ربات بسازید و توکن آن را دریافت کنید.
+5. در ترمینال، داخل نسخه‌ای که از مخزن خودتان Clone کرده‌اید، توکن را به‌صورت Secret ثبت کنید:
 
-If configuring manually, create a Telegram bot with [@BotFather](https://t.me/BotFather), then:
+   ```sh
+   pnpm install
+   pnpm exec wrangler login
+   pnpm exec wrangler secret put BOT_TOKEN
+   ```
+
+6. پس از مشخص‌شدن نشانی Worker، webhook و منوی دستورهای تلگرام را ثبت کنید:
+
+   ```sh
+   WORKER_URL=https://<worker>.<subdomain>.workers.dev BOT_TOKEN=<your-token> pnpm set:webhook
+   ```
+
+اگر فرایند Deploy برای D1 از شما شناسه پایگاه خواست، پایگاه D1 را در حساب Cloudflare خود بسازید و شناسه آن را در `wrangler.jsonc` برای binding با نام `DB` قرار دهید. هر نصب باید Worker، پایگاه داده و توکن مخصوص خودش را داشته باشد.
+
+## 🛠 راه‌اندازی دستی با ترمینال
+
+### پیش‌نیازها
+
+- حساب Cloudflare با دسترسی Workers و D1
+- حساب GitHub برای نگهداری نسخه شخصی (اختیاری، اما برای Deploy Button و CI مفید است)
+- ربات تلگرام ساخته‌شده با [@BotFather](https://t.me/BotFather)
+- Node.js نسخه ۲۲ یا جدیدتر و Corepack
+
+### ۱. دریافت پروژه و نصب وابستگی‌ها
 
 ```sh
+git clone https://github.com/MHDLabs/clown-counter-bot-CFW.git
+cd clown-counter-bot-CFW
+
 corepack enable
 pnpm install
+pnpm exec wrangler login
+```
+
+### ۲. ساخت پایگاه D1
+
+```sh
 pnpm exec wrangler d1 create clown-counter-db
 ```
 
-Set the returned database ID in `wrangler.jsonc`, optionally set your own `BOT_ADMIN_IDS`, then deploy. The deploy script applies the checked-in migration first:
+شناسه `database_id` که Cloudflare برمی‌گرداند را در بخش `d1_databases` فایل `wrangler.jsonc` جایگزین مقدار نمونه کنید. مقدار binding باید `DB` و نام پایگاه `clown-counter-db` باشد.
+
+### ۳. تنظیم مدیران اختیاری
+
+به‌صورت پیش‌فرض، مدیران خود گروه اجازه تغییر تنظیمات ربات را دارند. اگر می‌خواهید شناسه‌های تلگرام مشخصی نیز اجازه مدیریت داشته باشند، مقدار `BOT_ADMIN_IDS` را در `vars` فایل `wrangler.jsonc` با شناسه‌های عددی و جداشده با کاما تنظیم کنید:
+
+```jsonc
+"vars": {
+  "BOT_ADMIN_IDS": "123456789,987654321"
+}
+```
+
+این فهرست فقط مجوز تنظیمات ربات را می‌دهد و دسترسی Cloudflare یا D1 ایجاد نمی‌کند. در مخزن عمومی، شناسه شخصی قرار ندهید.
+
+### ۴. ثبت توکن و Deploy
 
 ```sh
 pnpm exec wrangler secret put BOT_TOKEN
 pnpm deploy
-WORKER_URL=https://<your-worker>.<your-subdomain>.workers.dev BOT_TOKEN=<your-token> pnpm set:webhook
 ```
 
-The webhook script registers `/telegram` and derives the same secret used by the Worker. Never commit bot tokens or local environment files.
+فرمان `pnpm deploy` ابتدا مهاجرت‌های اعمال‌نشده D1 را اجرا می‌کند و سپس Worker را Deploy می‌کند.
 
-## Local development and migrations
+### ۵. ثبت webhook تلگرام
 
-Create `.dev.vars` from the example and enter your own bot token:
+نشانی Worker را از خروجی Deploy بردارید و دستور زیر را با توکن واقعی اجرا کنید:
+
+```sh
+WORKER_URL=https://<worker>.<subdomain>.workers.dev BOT_TOKEN=<your-token> pnpm set:webhook
+```
+
+این اسکریپت webhook را روی مسیر `/telegram` تنظیم می‌کند و منوی دستورهای تلگرام را ثبت می‌کند. در پایان، آدرس `https://<worker>.<subdomain>.workers.dev/health` باید پاسخ `{"ok":true}` بدهد.
+
+## 💻 توسعه محلی
 
 ```sh
 cp .dev.vars.example .dev.vars
+```
+
+توکن ربات را در فایل محلی `.dev.vars` قرار دهید:
+
+```env
+BOT_TOKEN=your-telegram-bot-token
+```
+
+سپس:
+
+```sh
 pnpm install
 pnpm db:migrate:local
 pnpm dev
 ```
 
-Wrangler uses its local D1 database for `pnpm dev`. The committed SQLite migration is in `drizzle/0001_initial.sql`. Apply production migrations with `pnpm db:migrate:prod`; this applies pending migrations and does not reset or recreate a database. Validate the local migration set with `pnpm db:validate`.
+برای بررسی و تست پروژه:
 
-## Maintainer automatic deployment
+```sh
+pnpm check
+pnpm test
+pnpm db:validate
+pnpm test:d1
+pnpm build
+```
 
-The GitHub Actions production deployment is separate from the public button. It runs only when the repository is exactly `MHDLabs/clown-counter-bot-CFW`, the ref is `main`, and validation succeeds. On the first run it creates `clown-counter-db` if it does not exist; later runs resolve and reuse that database. It applies pending migrations, deploys the Worker, stores `BOT_TOKEN` as a Worker secret, and registers the webhook. It never deletes or resets production data. Forks and pull requests run validation only; their workflow receives only read access to repository contents and cannot enter the production job or access the original repository's deployment secrets.
+مهاجرت‌های پایگاه در پوشه `drizzle/` نگهداری می‌شوند. برای اعمال مهاجرت‌های Production از `pnpm db:migrate:prod` استفاده کنید؛ این فرمان مهاجرت‌های جدید را اعمال می‌کند و پایگاه را حذف یا از نو ایجاد نمی‌کند.
 
-Make these Actions secrets available to the production job (prefer the `production` environment): `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` (Worker deployment plus D1 list, create, and migration permissions), and `BOT_TOKEN`. Optionally set `BOT_ADMIN_IDS` as a secret in that same environment to configure the maintainer's own comma-separated Telegram IDs; the workflow validates and injects it only into the production Worker. If omitted, it remains empty and Telegram group admins retain the standard group-management access. Fork Deploy Button installations remain separate and use their own Worker configuration. The workflow also supports manual runs with `workflow_dispatch`; the same repository/ref guard still applies. GitHub Actions are pinned to immutable SHAs on Node 24-compatible releases, and jobs use the fixed `ubuntu-24.04` runner to avoid floating-image migration warnings.
+## 🧱 معماری
 
-## Security and troubleshooting
+- یک Cloudflare Worker با webhook و آداپتور `cloudflare-mod` از grammY
+- یک Cloudflare D1 به‌عنوان پایگاه داده اصلی
+- Drizzle ORM با SQLite/D1
+- TypeScript، Fluent، Wrangler و pnpm
+- GitHub Actions برای اعتبارسنجی و استقرار مخزن اصلی
 
-Keep `.dev.vars`, `.env`, bot tokens, and Cloudflare API tokens private. The webhook secret is derived and is never logged. Ensure the Worker secret `BOT_TOKEN` is set and webhook registration succeeds; a deployment is not considered complete if registration fails. The maintainer D1 database is named `clown-counter-db`; first-time provisioning requires D1 create permission, while deployments reuse the same database thereafter. Wrangler logs intentionally omit raw upstream error objects and sensitive request headers.
+شناسه‌های تلگرام به‌صورت متن ذخیره می‌شوند تا دقت عددی آن‌ها حفظ شود. کنترل مهلت رأی با یک عملیات شرطی SQLite انجام می‌شود. برای معماری فعلی به KV یا Durable Objects نیازی نیست.
 
-## Contributing and license
+## 🔐 امنیت
 
-Run `pnpm check`, `pnpm test`, `pnpm db:migrate:local`, `pnpm test:d1`, and `pnpm build` before opening a pull request. Preserve the one-Worker/one-D1 design and avoid destructive migrations. This repository currently has no `LICENSE` file; redistribution and reuse terms have not been specified.
+- توکن ربات را فقط به‌صورت Worker Secret با نام `BOT_TOKEN` ثبت کنید.
+- فایل‌های `.dev.vars` و `.env` و توکن‌های Cloudflare یا Telegram را Commit نکنید.
+- webhook با Secret مشتق‌شده از توکن اعتبارسنجی می‌شود.
+- هر نصب باید از منابع و Secrets مستقل خودش استفاده کند.
+- مسیر `/health` فقط وضعیت پاسخ‌گویی Worker را بررسی می‌کند.
+
+## 📄 مجوز
+
+این پروژه تحت مجوز [MIT](LICENSE) منتشر می‌شود. متن کامل مجوز در فایل `LICENSE` قرار دارد.
+
+---
+
+**Made with ☕ by [MHDLabs](https://github.com/MHDLabs)**
+
+Keep it simple :)
