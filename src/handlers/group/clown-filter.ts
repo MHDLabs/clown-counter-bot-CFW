@@ -2,12 +2,18 @@ import type { MiddlewareFn } from "grammy";
 
 import type { BotContext, ClownCall } from "@/lib/bot";
 
-import { parseFileId } from "@/lib/file-id";
+import {
+  getLegacyMediaId,
+  isLegacyMediaId,
+  matchesStoredMediaId,
+} from "@/lib/file-id/storage";
 
 const clownTexts = ["🤡", "دلقک"];
 const unclownTexts = ["😇", "ستون", "آدم عاقل"];
 
 const MEDIA_COLUMNS = { gifIds: true, stickerIds: true, unclownGifIds: true, unclownStickerIds: true } as const;
+
+type GroupMedia = Record<keyof typeof MEDIA_COLUMNS, string[] | null>;
 
 function matchText(text: string | undefined): ClownCall | null {
   if (clownTexts.includes(text ?? "")) return "clown";
@@ -15,9 +21,12 @@ function matchText(text: string | undefined): ClownCall | null {
   return null;
 }
 
-function matchMedia(group: Record<keyof typeof MEDIA_COLUMNS, string[] | null>, parsedId: string): ClownCall | null {
-  if (group.gifIds?.includes(parsedId) || group.stickerIds?.includes(parsedId)) return "clown";
-  if (group.unclownGifIds?.includes(parsedId) || group.unclownStickerIds?.includes(parsedId)) return "unclown";
+function matchMedia(group: GroupMedia, fileId: string, legacyId: string | null): ClownCall | null {
+  const matches = (ids: string[] | null) =>
+    ids?.some((storedId) => matchesStoredMediaId(storedId, fileId, legacyId)) ?? false;
+
+  if (matches(group.gifIds) || matches(group.stickerIds)) return "clown";
+  if (matches(group.unclownGifIds) || matches(group.unclownStickerIds)) return "unclown";
   return null;
 }
 
@@ -34,7 +43,15 @@ async function matchMediaCall(ctx: BotContext): Promise<ClownCall | null> {
 
   if (!group) return null;
 
-  return matchMedia(group, parseFileId(fileId).id.toString());
+  const hasLegacyIds = [
+    ... (group.gifIds ?? []),
+    ... (group.stickerIds ?? []),
+    ... (group.unclownGifIds ?? []),
+    ... (group.unclownStickerIds ?? []),
+  ].some(isLegacyMediaId);
+  const legacyId = hasLegacyIds ? getLegacyMediaId(fileId) : null;
+
+  return matchMedia(group, fileId, legacyId);
 }
 
 /** Matcher for the 🤡/دلقک flow: sets `ctx.clownCall` and continues, or stops the chain. */

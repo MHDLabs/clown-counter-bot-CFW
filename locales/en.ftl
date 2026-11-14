@@ -124,3 +124,8 @@ cmd_mystats_score = Net clown score: { $score }
 cmd_mystats_received = Points added: { $received }
 cmd_mystats_removed = Points removed: { $removed }
 cmd_mystats_unavailable = I couldn't identify a user. Reply to a group member's message with this command.
+cmd_clown_media_legacy =
+    Some saved media use legacy identifiers that Telegram cannot send. Reply to each original GIF or sticker and add it again with /setgif, /setsticker, /setunclowngif, or /setunclownsticker.
+
+cmd_clown_media_send_failed =
+    😕 Telegram could not send one or more saved media items. Re-add the affected media with the matching setup command.

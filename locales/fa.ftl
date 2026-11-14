@@ -335,3 +335,10 @@ cmd_mystats_score = امتیاز خالص دلقکی: { $score }
 cmd_mystats_received = امتیازهای اضافه‌شده: { $received }
 cmd_mystats_removed = امتیازهای کم‌شده: { $removed }
 cmd_mystats_unavailable = کاربر هدف مشخص نیست. دستور را در پاسخ به پیام یک عضو بفرستید.
+cmd_clown_media_legacy =
+    رسانه‌های ذخیره‌شده مربوط به نسخهٔ قدیمی هستند و شناسهٔ آن‌ها برای ارسال در تلگرام معتبر نیست.
+    لطفاً روی هر GIF یا استیکر اصلی Reply کنید و دوباره دستور مناسب را بفرستید:
+    /setgif، /setsticker، /setunclowngif یا /setunclownsticker.
+
+cmd_clown_media_send_failed =
+    😕 تلگرام نتوانست یکی یا چند رسانهٔ ذخیره‌شده را ارسال کند. رسانهٔ مشکل‌دار را دوباره با دستور تنظیم مربوط ثبت کنید.

@@ -6,7 +6,11 @@ import type { BotContext } from "@/lib/bot";
 import type { GroupPatch } from "@/lib/utils";
 
 import { isAdmin } from "@/lib/bot";
-import { parseFileId } from "@/lib/file-id";
+import {
+  getLegacyMediaId,
+  getSendableMediaIds,
+  matchesStoredMediaId,
+} from "@/lib/file-id/storage";
 import { saveGroup } from "@/lib/utils";
 
 type FilesOfGroup = Pick<
@@ -50,11 +54,15 @@ function createSetMediaHandler(spec: MediaSpec) {
       where: (f, o) => o.eq(f.id, String(msg.chat.id)),
     });
 
-    const existing = spec.getIds(group);
+    // Drop IDs written by older versions: they are parser-internal numbers, not Bot API file_id values.
+    const existing = getSendableMediaIds(spec.getIds(group));
+    const alreadyConfigured = existing.includes(rawFileId);
 
-    if (existing.length >= spec.max) return await ctx.replyTo(msg, ctx.t(`${spec.key}_limit`));
+    if (!alreadyConfigured && existing.length >= spec.max) {
+      return await ctx.replyTo(msg, ctx.t(`${spec.key}_limit`));
+    }
 
-    const updated = [...existing, parseFileId(rawFileId).id.toString()];
+    const updated = alreadyConfigured ? existing : [...existing, rawFileId];
 
     await saveGroup(ctx.db, { chatId: msg.chat.id, name: msg.chat.title, patch: spec.apply(updated) });
 
@@ -80,13 +88,15 @@ function createRemoveMediaHandler(spec: MediaSpec) {
     });
 
     const existing = spec.getIds(group);
-
     if (existing.length === 0) return await ctx.replyTo(msg, ctx.t(`${spec.key}_empty`));
 
-    const fileId = parseFileId(rawFileId).id.toString();
-    if (!existing.includes(fileId)) return await ctx.replyTo(msg, ctx.t(`${spec.key}_not_found`));
+    // Support both the new opaque file_id and the old parser-internal ID during cleanup.
+    const legacyId = getLegacyMediaId(rawFileId);
+    const updated = existing.filter((id) => !matchesStoredMediaId(id, rawFileId, legacyId));
 
-    const updated = existing.filter((id) => id !== fileId);
+    if (updated.length === existing.length) {
+      return await ctx.replyTo(msg, ctx.t(`${spec.key}_not_found`));
+    }
 
     await saveGroup(ctx.db, {
       chatId: msg.chat.id,
