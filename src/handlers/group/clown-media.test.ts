@@ -50,7 +50,7 @@ describe("clown media sending", () => {
     await handler.handler(ctx);
 
     expect(sendAnimation).not.toHaveBeenCalled();
-    expect(replyTo).toHaveBeenCalledWith(message, "cmd_clown_media_legacy");
+    expect(replyTo).toHaveBeenCalledExactlyOnceWith(message, "cmd_clown_media_legacy");
   });
 
   it("contains Telegram send failures instead of rejecting the webhook handler", async () => {
@@ -60,6 +60,6 @@ describe("clown media sending", () => {
     await expect(handler.handler(ctx)).resolves.toBeUndefined();
 
     expect(sendAnimation).toHaveBeenCalledExactlyOnceWith(chatId, validTelegramFileId);
-    expect(replyTo).toHaveBeenCalledWith(message, "cmd_clown_media_send_failed");
+    expect(replyTo).toHaveBeenCalledExactlyOnceWith(message, "cmd_clown_media_send_failed");
   });
 });

@@ -47,7 +47,7 @@ async function sendClownMedia(ctx: BotContext, kind: ClownMediaKind) {
     return await ctx.replyTo(message, ctx.t("cmd_clown_media_legacy"));
   }
 
-  return;
+  return null;
 }
 
 export const clownMediaHandlers: CommandHandler[] = [
