@@ -40,7 +40,7 @@ describe("clown media sending", () => {
     await handler.handler(ctx);
 
     expect(sendAnimation).toHaveBeenCalledOnce();
-    expect(sendAnimation).toHaveBeenCalledWith(chatId, validTelegramFileId);
+    expect(sendAnimation).toHaveBeenCalledExactlyOnceWith(chatId, validTelegramFileId);
     expect(replyTo).not.toHaveBeenCalled();
   });
 
@@ -59,7 +59,7 @@ describe("clown media sending", () => {
 
     await expect(handler.handler(ctx)).resolves.toBeUndefined();
 
-    expect(sendAnimation).toHaveBeenCalledWith(chatId, validTelegramFileId);
+    expect(sendAnimation).toHaveBeenCalledExactlyOnceWith(chatId, validTelegramFileId);
     expect(replyTo).toHaveBeenCalledWith(message, "cmd_clown_media_send_failed");
   });
 });

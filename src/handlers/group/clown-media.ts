@@ -46,6 +46,8 @@ async function sendClownMedia(ctx: BotContext, kind: ClownMediaKind) {
   if (legacyCount > 0) {
     return await ctx.replyTo(message, ctx.t("cmd_clown_media_legacy"));
   }
+
+  return;
 }
 
 export const clownMediaHandlers: CommandHandler[] = [
