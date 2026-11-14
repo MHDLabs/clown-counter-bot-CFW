@@ -29,6 +29,8 @@ export const commandMenus = {
     { command: "stats", description: "Show group statistics" },
     { command: "mystats", description: "Show personal group statistics" },
     { command: "clownoftheday", description: "Choose clown of the day" },
+    { command: "clowngifs", description: "Send all configured clown GIFs" },
+    { command: "clownstickers", description: "Send all configured clown stickers" },
     ...settingsCommands,
   ],
   admin: settingsCommands,
