@@ -41,7 +41,7 @@ describe("clown media sending", () => {
 
     expect(sendAnimation).toHaveBeenCalledOnce();
     expect(sendAnimation).toHaveBeenCalledExactlyOnceWith(chatId, validTelegramFileId);
-    expect(replyTo).not.toHaveBeenCalled();
+    expect(replyTo).toHaveBeenCalledExactlyOnceWith(message, "cmd_clown_media_legacy");
   });
 
   it("explains how to repair legacy records without sending invalid numeric IDs", async () => {

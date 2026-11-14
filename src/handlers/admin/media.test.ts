@@ -10,6 +10,7 @@ describe("admin media configuration", () => {
     const onConflictDoUpdate = vi.fn().mockResolvedValue(undefined);
     const values = vi.fn().mockReturnValue({ onConflictDoUpdate });
     const insert = vi.fn().mockReturnValue({ values });
+    const translate = vi.fn((key: string) => key);
     const ctx = {
       msg: {
         chat: { id: -100123456789, title: "Test group" },
@@ -27,7 +28,7 @@ describe("admin media configuration", () => {
         insert,
       },
       replyTo: vi.fn().mockResolvedValue(undefined),
-      t: (key: string) => key,
+      t: translate,
     } as unknown as BotContext;
     const handler = mediaHandlers.find((item) => item.name === "setgif");
     if (!handler) throw new Error("setgif handler is missing");
@@ -39,6 +40,7 @@ describe("admin media configuration", () => {
       name: "Test group",
       gifIds: [fileId],
     });
-    expect(ctx.replyTo).toHaveBeenCalledWith(ctx.msg, "cmd_setgif_done", { count: 1, max: 3 });
+    expect(translate).toHaveBeenCalledExactlyOnceWith("cmd_setgif_done", { count: 1, max: 3 });
+    expect(ctx.replyTo).toHaveBeenCalledExactlyOnceWith(ctx.msg, "cmd_setgif_done");
   });
 });
