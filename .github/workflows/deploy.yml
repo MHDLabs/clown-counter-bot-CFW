@@ -49,6 +49,7 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+      BOT_ADMIN_IDS: ${{ secrets.BOT_ADMIN_IDS }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
@@ -62,6 +63,7 @@ jobs:
           test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo 'Missing CLOUDFLARE_ACCOUNT_ID'; exit 1; }
           test -n "$CLOUDFLARE_API_TOKEN" || { echo 'Missing CLOUDFLARE_API_TOKEN'; exit 1; }
           test -n "$BOT_TOKEN" || { echo 'Missing BOT_TOKEN'; exit 1; }
+          [[ -z "$BOT_ADMIN_IDS" || "$BOT_ADMIN_IDS" =~ ^[0-9]+(,[0-9]+)*$ ]] || { echo 'BOT_ADMIN_IDS must be a comma-separated list of numeric Telegram IDs'; exit 1; }
       - name: Resolve or create the production D1 database
         shell: bash
         run: |
@@ -90,13 +92,16 @@ jobs:
             exit 1
           fi
 
-          DB_ID="$DB_ID" node --input-type=module -e '
+          DB_ID="$DB_ID" BOT_ADMIN_IDS="$BOT_ADMIN_IDS" node --input-type=module -e '
             import { readFileSync, writeFileSync } from "node:fs";
             const path = "wrangler.jsonc";
             const config = readFileSync(path, "utf8");
-            const databaseId = /("database_id"\s*:\s*")[^"]+(")/;
+            const databaseId = /(\"database_id\"\s*:\s*\")[^\"]+(\")/;
             if (!databaseId.test(config)) throw new Error("Could not locate D1 database_id in wrangler.jsonc");
-            writeFileSync(path, config.replace(databaseId, `$1${process.env.DB_ID}$2`));
+            const adminIds = /(\"BOT_ADMIN_IDS\"\s*:\s*\")[^\"]*(\")/;
+            if (!adminIds.test(config)) throw new Error("Could not locate BOT_ADMIN_IDS in wrangler.jsonc");
+            const withDatabase = config.replace(databaseId, `$1${process.env.DB_ID}$2`);
+            writeFileSync(path, withDatabase.replace(adminIds, `$1${process.env.BOT_ADMIN_IDS ?? ""}$2`));
           '
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
