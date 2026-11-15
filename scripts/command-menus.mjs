@@ -11,14 +11,17 @@ const settingsCommands = [
   { command: "resetstats", description: "Reset group statistics" },
 ];
 
+const privateCommands = [
+  { command: "start", description: "Start Clown Counter" },
+  { command: "help", description: "Detailed usage guide" },
+  { command: "language", description: "Choose bot language" },
+  { command: "privacy", description: "Privacy information" },
+  { command: "source", description: "View source code" },
+];
+
 export const commandMenus = {
-  private: [
-    { command: "start", description: "Start Clown Counter" },
-    { command: "help", description: "Detailed usage guide" },
-    { command: "language", description: "Choose bot language" },
-    { command: "privacy", description: "Privacy information" },
-    { command: "source", description: "View source code" },
-  ],
+  private: privateCommands,
+  owner: [...privateCommands, { command: "admin_status", description: "Owner-only bot status panel" }],
   // Settings names are listed for all group members so explicitly configured bot admins
   // can use them even when Telegram does not consider them group administrators.
   // Authorization is independently enforced by isAdmin before any setting changes.

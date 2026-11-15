@@ -23,6 +23,8 @@ cmd_privacy =
 
     این ربات فقط اطلاعات لازم برای کارکردش را نگه می‌دارد: شناسه و نام گروه و کاربران، زمان رأی‌ها، تنظیمات گروه، شناسهٔ رسانه‌های سفارشی و زبان انتخابی شما. تاریخچهٔ پیام‌ها ذخیره نمی‌شود.
 
+    مدیران اصلی تعیین‌شده در تنظیمات Worker می‌توانند در گفت‌وگوی خصوصی، نام گروه‌های ثبت‌شده و امتیاز خالص دلقک‌ها را ببینند. این پنل شناسهٔ عددی اعضا، هویت رأی‌دهندگان یا تاریخچهٔ رأی‌ها را نمایش نمی‌دهد.
+
     🕵️‍♂️ آیا گفتگوها جایی نوشته میشن؟
 
     خیر! ربات بصورت پیشفرض هیچ تمایلی به حتی دریافت پیام کاربران هم نداره. تنها در صورتی که مایلید از دستورات متنی مانند «دلقک» و «🤡» استفاده کنید و به ما اعتماد کافی دارید، می‌تونید اون رو ادمین کنید (با حداقل دسترسی) تا به ربات این اجازه رو بدید که این دستورات متنی رو ببینه و بهشون جواب بده.
@@ -36,6 +38,9 @@ cmd_source =
 
     مخزن پروژه:
     https://github.com/MHDLabs/clown-counter-bot-CFW
+
+cmd_creator_credit = سازندهٔ پروژه: { $creator }
+cmd_creator_channel = کانال سازنده
 
 cmd_language_prompt = زبان پاسخ‌های ربات را انتخاب کنید:
 cmd_language_persian = فارسی
@@ -342,3 +347,41 @@ cmd_clown_media_legacy =
 
 cmd_clown_media_send_failed =
     😕 تلگرام نتوانست یکی یا چند رسانهٔ ذخیره‌شده را ارسال کند. رسانهٔ مشکل‌دار را دوباره با دستور تنظیم مربوط ثبت کنید.
+
+# Owner-only bot status and group allowlist
+admin_title = 🤡 پنل مدیر اصلی ربات
+admin_metric_groups = گروه‌های ثبت‌شده: { $count }
+admin_metric_active_groups = عضویت‌های تأییدشدهٔ فعال: { $count }
+admin_metric_clowns = افراد یکتای دارای امتیاز خالص مثبت در دورهٔ فعلی: { $count }
+admin_metric_whitelist = حالت whitelist: { $mode } — گروه‌های مجاز: { $count }
+admin_whitelist_enabled = فعال
+admin_whitelist_disabled = غیرفعال
+admin_groups_title = گروه‌های شناخته‌شدهٔ ربات
+admin_groups_empty = هنوز گروهی در پایگاه داده ثبت نشده است. گروه‌هایی که از این پس ربات به آن‌ها افزوده شود، خودکار ثبت می‌شوند.
+admin_groups_note = برای مشاهدهٔ فهرست دلقک‌ها یا تغییر whitelist، یک گروه را انتخاب کنید. شناسه‌های عددی نمایش داده نمی‌شوند. تلگرام فهرست گروه‌های قدیمی را در اختیار ربات نمی‌گذارد؛ ممکن است تا دریافت یک رویداد از گروه، آن گروه شناخته نشود.
+admin_group_unnamed = گروه بدون نام
+admin_group_active = عضویت فعال
+admin_group_inactive = عضو نیست
+admin_group_unknown = وضعیت نامشخص
+admin_group_line = { $name } — { $status } — whitelist: { $whitelist }
+admin_group_membership = وضعیت عضویت ربات: { $status }
+admin_group_allowlist = دسترسی در whitelist: { $status }
+admin_group_clowns_title = دلقک‌های این گروه بر اساس امتیاز خالص
+admin_clown_line = { $name } — امتیاز خالص: { $score }
+admin_group_no_clowns = در دورهٔ فعلی فردی امتیاز خالص مثبت ندارد.
+admin_group_privacy_note = فقط نام نمایشی و امتیاز خالص دیده می‌شود؛ شناسه، رأی‌دهنده و زمان رأی نمایش داده نمی‌شود.
+admin_group_missing = این گروه دیگر در پایگاه دادهٔ ربات موجود نیست.
+admin_page = صفحهٔ { $current } از { $total }
+admin_button_groups = فهرست گروه‌ها
+admin_button_home = بازگشت به پنل
+admin_button_previous = صفحهٔ قبل
+admin_button_next = صفحهٔ بعد
+admin_button_allow_group = افزودن به whitelist
+admin_button_remove_group = حذف از whitelist
+admin_button_enable_whitelist = فعال‌کردن whitelist
+admin_button_disable_whitelist = خاموش‌کردن whitelist
+admin_button_creator_channel = کانال سازنده
+admin_creator = سازندهٔ پروژه: { $creator }
+admin_whitelist_needs_group = پیش از فعال‌کردن whitelist، دست‌کم یک گروه را به فهرست مجاز اضافه کنید.
+admin_group_not_active = تلگرام تأیید می‌کند که ربات دیگر عضو این گروه نیست. برای افزودن آن به whitelist، ابتدا ربات را دوباره به گروه اضافه کنید.
+admin_error = بارگذاری پنل انجام نشد. کمی بعد دوباره تلاش کنید.

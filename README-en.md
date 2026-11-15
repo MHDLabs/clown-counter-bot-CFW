@@ -43,8 +43,15 @@ A Persian/English Telegram group bot for fun: clown voting, group statistics, cu
 - `/setunclowngif` and `/removeunclowngif`: Add or remove an unclown GIF
 - `/setunclownsticker` and `/removeunclownsticker`: Add or remove an unclown sticker
 - `/resetstats`: Start the group statistics reset flow
+  Reply to the target member's message when voting. To add or remove media, reply to the GIF or sticker with the corresponding command. Up to three media items of each type can be stored per group.
 
-Reply to the target member's message when voting. To add or remove media, reply to the GIF or sticker with the corresponding command. Up to three media items of each type can be stored per group.
+### Bot owner panel and group allowlist
+
+Set your own Telegram numeric ID in `BOT_ADMIN_IDS`. In a private chat with the bot, use `/admin_status`; Telegram only accepts letters, numbers, and underscores in registered command names, so the requested `/admin-status` spelling is also supported as a manually typed private alias. This is separate from Telegram group-admin status, and only IDs in `BOT_ADMIN_IDS` can use it.
+
+The interactive panel shows registered/active group counts, distinct members with a positive net clown score, and paginated group and leaderboard views. It displays only group/member display names and net scores—not numeric member IDs, voters, or vote history. Whitelist mode is off by default. When enabled, the bot silently ignores all group updates outside the allowlist; the owner's private chat remains available. Add or remove groups from the panel.
+
+The list contains groups recorded in D1. Telegram membership updates will record new group additions from deployment onward, but Telegram's API does not expose a complete list of the bot's older chats; a pre-existing group may remain unknown until the bot receives an update or records data there.
 
 ## 🚀 Deploy with the Cloudflare button
 
@@ -108,7 +115,7 @@ By default, Telegram group administrators can manage the bot's group settings. T
 }
 ```
 
-This allowlist grants permission to manage the bot's settings only. It does not grant Cloudflare or D1 access. Do not put personal IDs in the public template.
+This allowlist grants bot-owner access to the private panel and bot/group settings, but not Cloudflare or D1 access. Only include trusted IDs, and do not put personal IDs in the public template.
 
 ### 4. Add the bot token and deploy
 
@@ -127,7 +134,13 @@ Use the Worker URL printed by Wrangler:
 WORKER_URL=https://<worker>.<subdomain>.workers.dev BOT_TOKEN=<your-token> pnpm set:webhook
 ```
 
-This script registers the webhook at `/telegram` and configures Telegram command menus. The endpoint `https://<worker>.<subdomain>.workers.dev/health` should return `{"ok":true}`.
+This script registers the webhook at `/telegram`, enables bot-membership updates, and configures Telegram command menus. Pass the same `BOT_ADMIN_IDS` value so the owner-specific command menu is installed:
+
+```sh
+BOT_ADMIN_IDS=<your-telegram-id> WORKER_URL=https://<worker>.<subdomain>.workers.dev BOT_TOKEN=<your-token> pnpm set:webhook
+```
+
+The endpoint `https://<worker>.<subdomain>.workers.dev/health` should return `{"ok":true}`.
 
 ## 💻 Local development
 

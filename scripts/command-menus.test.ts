@@ -15,6 +15,11 @@ describe("Telegram command menus", () => {
     ]);
   });
 
+  it("adds the owner panel only to the owner-specific private command menu", () => {
+    expect(commandMenus.private.map(({ command }) => command)).not.toContain("admin_status");
+    expect(commandMenus.owner.map(({ command }) => command)).toContain("admin_status");
+  });
+
   it("publishes group commands and protected settings commands", () => {
     expect(commandMenus.group.map(({ command }) => command)).toEqual([
       "help",
@@ -50,6 +55,7 @@ describe("Telegram command menus", () => {
   it("exposes every registered command in all of its applicable menu scopes", () => {
     const names = (items: typeof commandMenus.private) => new Set(items.map(({ command }) => command));
     const privateNames = names(commandMenus.private);
+    const ownerNames = names(commandMenus.owner);
     const groupNames = names(commandMenus.group);
     const adminNames = names(administratorMenu);
     const missing: string[] = [];
@@ -57,7 +63,9 @@ describe("Telegram command menus", () => {
     for (const handler of handlers) {
       if (handler.kind !== "command") continue;
       if (handler.scopes.some((scope) => scope.type === "all_private_chats")) {
-        if (!privateNames.has(handler.name)) missing.push(`private:${handler.name}`);
+        const available =
+          handler.name === "admin_status" ? ownerNames.has(handler.name) : privateNames.has(handler.name);
+        if (!available) missing.push(`private:${handler.name}`);
       }
       if (handler.scopes.some((scope) => scope.type === "all_group_chats")) {
         if (!groupNames.has(handler.name)) missing.push(`group:${handler.name}`);

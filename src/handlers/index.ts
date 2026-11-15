@@ -3,9 +3,11 @@ import type { BotCommandScope } from "grammy/types";
 
 import type { BotContext } from "@/lib/bot";
 
+import { groupMembershipHandler } from "./admin/group-membership";
 import { mediaHandlers } from "./admin/media";
 import { resetStatsCallbacks, resetStatsHandler } from "./admin/resetstats";
 import { setCooldownHandler } from "./admin/setcooldown";
+import { adminStatusCallbacks, adminStatusHandler, adminStatusHyphenAlias } from "./admin/status";
 import { clownHandlers } from "./group/clown";
 import { clownMediaHandlers } from "./group/clown-media";
 import { clownOfTheDayHandler } from "./group/clownoftheday";
@@ -17,7 +19,7 @@ import { privacyHandler } from "./static/privacy";
 import { sourceHandler } from "./static/source";
 import { startHandler } from "./static/start";
 
-export type Handler = CallbackQueryHandler | CommandHandler | MessageHandler;
+export type Handler = CallbackQueryHandler | CommandHandler | MessageHandler | UpdateHandler;
 
 export type HandlerFn = (ctx: BotContext) => Promise<unknown>;
 
@@ -42,8 +44,14 @@ export interface MessageHandler {
 
 export interface CallbackQueryHandler {
   kind: "callback_query";
-  data: string;
+  data: string | RegExp;
   handler: HandlerFn;
+}
+
+export interface UpdateHandler {
+  kind: "update";
+  update: "my_chat_member";
+  handler: MiddlewareFn<BotContext>;
 }
 
 export const handlers: Handler[] = [
@@ -55,6 +63,9 @@ export const handlers: Handler[] = [
   sourceHandler,
   privacyHandler,
   ...languageCallbacks,
+  adminStatusHandler,
+  adminStatusHyphenAlias,
+  ...adminStatusCallbacks,
 
   // Groups
   ...clownHandlers,
@@ -65,6 +76,7 @@ export const handlers: Handler[] = [
 
   // Admins
   ...mediaHandlers,
+  groupMembershipHandler,
   resetStatsHandler,
   ...resetStatsCallbacks,
   setCooldownHandler,

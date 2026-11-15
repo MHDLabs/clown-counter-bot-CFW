@@ -10,6 +10,7 @@ import type { I18nFlavor } from "./plugins/i18n";
 import type { ReplyToFlavor } from "./plugins/reply-to";
 
 import { errorHandler } from "./error-handler";
+import { groupWhitelistMiddleware } from "./group-whitelist";
 import { autoRetryPlugin } from "./plugins/auto-retry";
 import { applyHandlers } from "./registration";
 
@@ -47,6 +48,7 @@ export class Bot extends GrammyBot<BotContext> {
       ctx.botAdminIds = botAdminIds;
       await next();
     });
+    this.use(groupWhitelistMiddleware);
     plugins.forEach((plugin) => this.use(plugin));
 
     this.api.config.use(autoRetryPlugin());

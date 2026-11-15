@@ -25,11 +25,16 @@ function testDatabase(
         onConflictDoUpdate: async () => onLocaleSaved?.(row.locale),
       }),
     }),
-    select: () => ({
-      from: () => ({
-        where: async () => [options.personalStats ?? { score: 0, received: 0, removed: 0 }],
-      }),
-    }),
+    select: () => {
+      const query = {
+        from: () => query,
+        where: () => query,
+        limit: async () => [],
+        then: (resolve: (value: unknown[]) => unknown, reject?: (reason: unknown) => unknown) =>
+          Promise.resolve([options.personalStats ?? { score: 0, received: 0, removed: 0 }]).then(resolve, reject),
+      };
+      return query;
+    },
   } as unknown as AppDb;
 }
 

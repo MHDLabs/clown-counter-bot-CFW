@@ -17,12 +17,24 @@ export const userPreferences = t.sqliteTable("user_preferences", {
 export const groups = t.sqliteTable("groups", {
   id: telegramId().primaryKey(),
   name: t.text(),
+  botMemberStatus: t.text().$type<"active" | "kicked" | "left">(),
   gifIds: stringArray(),
   stickerIds: stringArray(),
   unclownGifIds: stringArray(),
   unclownStickerIds: stringArray(),
   resetAt: t.integer({ mode: "timestamp_ms" }),
   cooldown: t.integer(),
+});
+
+export const botSettings = t.sqliteTable("bot_settings", {
+  key: t.text().primaryKey(),
+  value: t.text().notNull(),
+});
+
+export const allowedGroups = t.sqliteTable("allowed_groups", {
+  groupId: telegramId()
+    .primaryKey()
+    .references(() => groups.id),
 });
 
 export const clownVotes = t.sqliteTable(

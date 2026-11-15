@@ -43,7 +43,7 @@
         "description": "Your Telegram bot token from @BotFather. Stored as a Worker secret."
       },
       "BOT_ADMIN_IDS": {
-        "description": "Optional comma-separated Telegram numeric user IDs allowed to manage bot settings in groups. Leave empty to require Telegram group-admin status."
+        "description": "Optional comma-separated Telegram numeric user IDs with access to the private bot-owner panel, group allowlist, and bot settings. Leave empty to require Telegram group-admin status for group settings."
       }
     }
   }

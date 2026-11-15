@@ -77,11 +77,29 @@ function reportWebhookStatus(label, response) {
 }
 
 reportWebhookStatus("before re-registration", await telegram("getWebhookInfo", {}));
-await telegram("setWebhook", { url, secret_token: secret, allowed_updates: ["message", "callback_query"] });
+await telegram("setWebhook", {
+  url,
+  secret_token: secret,
+  allowed_updates: ["message", "callback_query", "my_chat_member"],
+});
 const webhookInfo = await telegram("getWebhookInfo", {});
 if (webhookInfo.result?.url !== url) throw new Error("Telegram did not retain the expected webhook URL");
 reportWebhookStatus("after registration", webhookInfo);
 await telegram("setMyCommands", { commands: commandMenus.private, scope: { type: "all_private_chats" } });
 await telegram("setMyCommands", { commands: commandMenus.group, scope: { type: "all_group_chats" } });
 await telegram("setMyCommands", { commands: administratorMenu, scope: { type: "all_chat_administrators" } });
+const ownerIds = new Set(
+  (process.env["BOT_ADMIN_IDS"] ?? "")
+    .split(",")
+    .map((id) => id.trim())
+    .filter((id) => /^\d+$/.test(id)),
+);
+await Promise.all(
+  [...ownerIds].map((ownerId) =>
+    telegram("setMyCommands", {
+      commands: commandMenus.owner,
+      scope: { type: "chat", chat_id: ownerId },
+    }),
+  ),
+);
 console.log("Telegram webhook and command menus configured successfully.");

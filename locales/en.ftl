@@ -1,9 +1,11 @@
 cmd_start = Welcome! I keep playful clown scores for your group. Add me to a group and reply to someone's message with /clown or 🤡 to vote. You can also reply with “clown” or 🤡 if I can see group messages. Change your language with /language. Privacy: /privacy | Source: /source
-cmd_privacy = Privacy: I store only the group and user IDs/names needed for scores, vote times, group settings, custom media identifiers, and your selected language. I do not keep a message history. The source is available with /source.
+cmd_privacy = Privacy: I store only the group and user IDs/names needed for scores, vote times, group settings, custom media identifiers, and your selected language. I do not keep a message history. Configured bot administrators can privately view registered group names and current net clown scores; the panel does not show numeric member IDs, voters, or vote history. The source is available with /source.
 cmd_source =
     The Clown Counter source code is publicly viewable at the repository below. The repository currently has no LICENSE file, so reuse, modification, and redistribution terms have not been specified.
 
     Repository: https://github.com/MHDLabs/clown-counter-bot-CFW
+cmd_creator_credit = Project creator: { $creator }
+cmd_creator_channel = Creator channel
 cmd_language_prompt = Choose the language for your bot replies:
 cmd_language_persian = فارسی
 cmd_language_english = English
@@ -127,5 +129,42 @@ cmd_mystats_unavailable = I couldn't identify a user. Reply to a group member's 
 cmd_clown_media_legacy =
     Some saved media use legacy identifiers that Telegram cannot send. Reply to each original GIF or sticker and add it again with /setgif, /setsticker, /setunclowngif, or /setunclownsticker.
 
-cmd_clown_media_send_failed =
-    😕 Telegram could not send one or more saved media items. Re-add the affected media with the matching setup command.
+cmd_clown_media_send_failed = 😕 Telegram could not send one or more saved media items. Re-add the affected media with the matching setup command.
+
+# Owner-only bot status and group allowlist
+admin_title = 🤡 Bot owner panel
+admin_metric_groups = Registered groups: { $count }
+admin_metric_active_groups = Confirmed active memberships: { $count }
+admin_metric_clowns = Distinct members with a positive net clown score this period: { $count }
+admin_metric_whitelist = Whitelist mode: { $mode } — allowlisted groups: { $count }
+admin_whitelist_enabled = enabled
+admin_whitelist_disabled = disabled
+admin_groups_title = Known bot groups
+admin_groups_empty = No groups are recorded yet. New group additions will be tracked automatically from now on.
+admin_groups_note = Select a group to view its leaderboard or change its allowlist entry. Numeric IDs are not displayed. Telegram does not provide a list of older chats, so a group may remain unknown until the bot receives an update there.
+admin_group_unnamed = Unnamed group
+admin_group_active = Active member
+admin_group_inactive = Not a member
+admin_group_unknown = Unknown status
+admin_group_line = { $name } — { $status } — whitelist: { $whitelist }
+admin_group_membership = Bot membership: { $status }
+admin_group_allowlist = Whitelist access: { $status }
+admin_group_clowns_title = Current-period clowns by net score
+admin_clown_line = { $name } — net score: { $score }
+admin_group_no_clowns = No member has a positive net score in the current period.
+admin_group_privacy_note = Only display names and net scores are shown; no IDs, voters, or vote timestamps are exposed.
+admin_group_missing = This group is no longer present in the bot database.
+admin_page = Page { $current } of { $total }
+admin_button_groups = Group list
+admin_button_home = Back to panel
+admin_button_previous = Previous
+admin_button_next = Next
+admin_button_allow_group = Add to whitelist
+admin_button_remove_group = Remove from whitelist
+admin_button_enable_whitelist = Enable whitelist
+admin_button_disable_whitelist = Disable whitelist
+admin_button_creator_channel = Creator channel
+admin_creator = Project creator: { $creator }
+admin_whitelist_needs_group = Add at least one group to the allowlist before enabling whitelist mode.
+admin_group_not_active = Telegram confirms that the bot is no longer a member of this group. Re-add it before allowlisting.
+admin_error = The panel could not be loaded. Please try again shortly.

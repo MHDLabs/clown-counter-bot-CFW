@@ -42,6 +42,10 @@ export function applyHandlers(
       case "callback_query":
         bot.callbackQuery(handler.data, handler.handler);
         break;
+
+      case "update":
+        bot.on(handler.update, handler.handler);
+        break;
     }
   }
 }

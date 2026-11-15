@@ -111,6 +111,30 @@ const personalStats = personalAggregate[0].results[0];
 if (personalStats.score !== 3 || personalStats.received !== 5 || personalStats.removed !== 2)
   throw new Error("Personal statistics did not match current group period and vote direction");
 
+const positiveClowns = await command(`SELECT COUNT(*) AS total FROM (
+  SELECT clown_votes.clown_id, sum(clown_votes.quantity) AS net_score
+  FROM clown_votes INNER JOIN groups ON groups.id=clown_votes.group_id
+  WHERE clown_votes.group_id='${group}' AND clown_votes.voted_at >= coalesce(groups.reset_at,0)
+  GROUP BY clown_votes.group_id,clown_votes.clown_id HAVING sum(clown_votes.quantity)>0
+)`);
+if (positiveClowns[0].results[0].total !== 1)
+  throw new Error("Current-period positive clown leaderboard returned an unexpected count");
+
+await command(`UPDATE groups SET bot_member_status='active' WHERE id='${group}'`);
+await command(`INSERT INTO bot_settings(key,value) VALUES('group_whitelist_enabled','enabled')
+  ON CONFLICT(key) DO UPDATE SET value=excluded.value`);
+await command(`INSERT OR REPLACE INTO allowed_groups(group_id) VALUES('${group}')`);
+const membershipStatus = await command(`SELECT bot_member_status FROM groups WHERE id='${group}'`);
+const whitelistMode = await command(`SELECT value FROM bot_settings WHERE key='group_whitelist_enabled'`);
+const allowlistEntry = await command(`SELECT group_id FROM allowed_groups WHERE group_id='${group}'`);
+if (membershipStatus[0].results[0].bot_member_status !== "active")
+  throw new Error("Bot membership status was not persisted");
+if (whitelistMode[0].results[0].value !== "enabled" || allowlistEntry[0].results[0].group_id !== group)
+  throw new Error("Group whitelist settings were not persisted");
+await command(`DELETE FROM allowed_groups WHERE group_id='${group}'`);
+await command(`DELETE FROM bot_settings WHERE key='group_whitelist_enabled'`);
+await command(`UPDATE groups SET bot_member_status=NULL WHERE id='${group}'`);
+
 console.log(
-  "D1 vote/daily-award concurrency, cooldown boundary, group isolation, UTC day boundary, group/personal statistics, and 64-bit text IDs passed.",
+  "D1 vote/daily-award concurrency, cooldown boundary, group isolation, UTC day boundary, group/personal/current-period statistics, membership tracking, whitelist persistence, and 64-bit text IDs passed.",
 );
