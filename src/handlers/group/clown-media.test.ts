@@ -39,7 +39,7 @@ describe("clown media sending", () => {
 
     await handler.handler(ctx);
 
-    expect(sendAnimation).toHaveBeenCalledOnce();
+    expect(sendAnimation).toHaveBeenCalledExactlyOnceWith(chatId, validTelegramFileId);
     expect(sendAnimation).toHaveBeenCalledExactlyOnceWith(chatId, validTelegramFileId);
     expect(replyTo).toHaveBeenCalledExactlyOnceWith(message, "cmd_clown_media_legacy");
   });

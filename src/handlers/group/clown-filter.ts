@@ -4,16 +4,23 @@ import type { BotContext, ClownCall } from "@/lib/bot";
 
 import { getLegacyMediaId, isLegacyMediaId, matchesStoredMediaId } from "@/lib/file-id/storage";
 
-const clownTexts = ["🤡", "دلقک"];
-const unclownTexts = ["😇", "ستون", "آدم عاقل"];
+const clownTexts = ["🤡", "clown", "دلقک"];
+const unclownTexts = ["😇", "unclown", "angel", "ستون", "آدم عاقل"];
 
 const MEDIA_COLUMNS = { gifIds: true, stickerIds: true, unclownGifIds: true, unclownStickerIds: true } as const;
 
 type GroupMedia = Record<keyof typeof MEDIA_COLUMNS, string[] | null>;
 
 function matchText(text: string | undefined): ClownCall | null {
-  if (clownTexts.includes(text ?? "")) return "clown";
-  if (unclownTexts.includes(text ?? "")) return "unclown";
+  const normalized = (text ?? "")
+    .normalize("NFKC")
+    .replace(/[\u200e\u200f\u2066-\u2069]/g, "")
+    .trim()
+    .replace(/[!.?،؛؟]+$/u, "")
+    .trim()
+    .toLowerCase();
+  if (clownTexts.includes(normalized)) return "clown";
+  if (unclownTexts.includes(normalized)) return "unclown";
   return null;
 }
 

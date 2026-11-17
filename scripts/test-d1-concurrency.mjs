@@ -40,6 +40,9 @@ const seed = async () => {
   await command(`INSERT OR IGNORE INTO users(id,name) VALUES('${clown}','clown')`);
   await command(`DELETE FROM clown_votes WHERE voter_id='${voter}' AND group_id IN ('${group}','${otherGroup}')`);
   await command(`DELETE FROM clown_votes WHERE voter_id IS NULL AND group_id='${group}'`);
+  await command(
+    `DELETE FROM clown_cooldown_attempts WHERE voter_id='${voter}' AND group_id IN ('${group}','${otherGroup}')`,
+  );
 };
 
 /** @param {string} targetGroup @param {number} timestamp */
@@ -61,6 +64,29 @@ await command(voteInsert(group, now + cooldown));
 if ((await countVotes()) !== 2) throw new Error("Vote was not accepted at the exact cooldown boundary");
 await command(voteInsert(otherGroup, now + cooldown));
 if ((await countVotes()) !== 3) throw new Error("Cooldown leaked across group boundaries");
+
+/** @param {string} targetGroup @param {number} timestamp @param {number} expiresAt */
+const cooldownAttempt = (targetGroup, timestamp, expiresAt) =>
+  command(`INSERT INTO clown_cooldown_attempts(group_id,voter_id,attempts,expires_at)
+  VALUES('${targetGroup}','${voter}',1,${expiresAt})
+  ON CONFLICT(group_id,voter_id) DO UPDATE SET
+    attempts=CASE WHEN clown_cooldown_attempts.expires_at<=${timestamp} THEN 1 ELSE clown_cooldown_attempts.attempts+1 END,
+    expires_at=excluded.expires_at
+  RETURNING attempts`);
+
+const firstCooldownAttempt = await cooldownAttempt(group, now, now + cooldown);
+const secondCooldownAttempt = await cooldownAttempt(group, now + 1, now + cooldown);
+const isolatedCooldownAttempt = await cooldownAttempt(otherGroup, now + 1, now + cooldown);
+const resetCooldownAttempt = await cooldownAttempt(group, now + cooldown + 1, now + cooldown * 2);
+if (firstCooldownAttempt[0].results[0].attempts !== 1 || secondCooldownAttempt[0].results[0].attempts !== 2)
+  throw new Error("Repeated clown cooldown attempts did not reach the third-attempt threshold");
+if (isolatedCooldownAttempt[0].results[0].attempts !== 1)
+  throw new Error("Cooldown attempt counts leaked across group boundaries");
+if (resetCooldownAttempt[0].results[0].attempts !== 1)
+  throw new Error("Expired clown cooldown attempts were not reset");
+await command(
+  `DELETE FROM clown_cooldown_attempts WHERE voter_id='${voter}' AND group_id IN ('${group}','${otherGroup}')`,
+);
 
 const dayStart = Math.floor(now / 86_400_000) * 86_400_000;
 
@@ -136,5 +162,5 @@ await command(`DELETE FROM bot_settings WHERE key='group_whitelist_enabled'`);
 await command(`UPDATE groups SET bot_member_status=NULL WHERE id='${group}'`);
 
 console.log(
-  "D1 vote/daily-award concurrency, cooldown boundary, group isolation, UTC day boundary, group/personal/current-period statistics, membership tracking, whitelist persistence, and 64-bit text IDs passed.",
+  "D1 vote/daily-award concurrency, cooldown boundary, third-attempt strike counting/expiry/group isolation, UTC day boundary, group/personal/current-period statistics, membership tracking, whitelist persistence, and 64-bit text IDs passed.",
 );

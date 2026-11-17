@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { BotContext } from "@/lib/bot";
 
@@ -61,5 +61,31 @@ describe("Workers-safe Telegram file IDs", () => {
     await isClownCall(ctx, async () => {});
 
     expect(ctx.clownCall).toBe(expected);
+  });
+
+  it.each([
+    ["🤡", "clown"],
+    ["  🤡  ", "clown"],
+    ["ClOwN!", "clown"],
+    ["دلقک؟", "clown"],
+    [" 😇 ", "unclown"],
+    ["UNClOwN!", "unclown"],
+    ["آدم عاقل", "unclown"],
+  ] as const)("recognizes normalized text trigger %s", async (text, expected) => {
+    const ctx = { msg: { text }, chat: { id: -123 } } as unknown as BotContext;
+    const next = vi.fn();
+    await isClownCall(ctx, next);
+
+    expect(ctx.clownCall).toBe(expected);
+    expect(next.mock.calls).toHaveLength(1);
+  });
+
+  it("does not treat an unrelated sentence containing a trigger word as a vote", async () => {
+    const ctx = { msg: { text: "That was clown behavior" }, chat: { id: -123 } } as unknown as BotContext;
+    const next = vi.fn();
+    await isClownCall(ctx, next);
+
+    expect(ctx.clownCall).toBeUndefined();
+    expect(next).not.toHaveBeenCalled();
   });
 });

@@ -235,7 +235,7 @@ describe("grammY Cloudflare webhook", () => {
 
     const sendRichMessage = calls.find((call) => call.method === "sendRichMessage");
 
-    expect(JSON.stringify(sendRichMessage?.payload["rich_message"])).toContain("Reply to a group member's message");
+    expect(JSON.stringify(sendRichMessage?.payload["rich_message"])).toContain("/clown");
     expect(sendRichMessage?.payload["reply_parameters"]).toMatchObject({
       message_id: 4,
       chat_id: -100123,

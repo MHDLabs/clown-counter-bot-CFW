@@ -37,6 +37,20 @@ export const allowedGroups = t.sqliteTable("allowed_groups", {
     .references(() => groups.id),
 });
 
+export const clownCooldownAttempts = t.sqliteTable(
+  "clown_cooldown_attempts",
+  {
+    groupId: telegramId().notNull(),
+    voterId: telegramId().notNull(),
+    attempts: t.integer().notNull().default(0),
+    expiresAt: t.integer().notNull(),
+  },
+  (table) => [
+    t.primaryKey({ columns: [table.groupId, table.voterId] }),
+    t.index("clown_cooldown_attempts_expires_at_idx").on(table.expiresAt),
+  ],
+);
+
 export const clownVotes = t.sqliteTable(
   "clown_votes",
   {
