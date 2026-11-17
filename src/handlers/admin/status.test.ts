@@ -107,8 +107,9 @@ describe("owner status panel access", () => {
     const next = vi.fn().mockResolvedValue(undefined);
 
     await adminStatusHyphenAlias.filter?.(ctx, next);
+    await adminStatusHyphenAlias.handler(ctx);
 
-    expect(next).not.toHaveBeenCalled();
+    expect(next).toHaveBeenCalledExactlyOnceWith();
     // eslint-disable-next-line vitest/prefer-called-with -- Payload and options are asserted separately.
     expect(sendRichMessage).toHaveBeenCalledOnce();
   });
@@ -221,8 +222,9 @@ describe("owner status panel access", () => {
     const next = vi.fn().mockResolvedValue(undefined);
 
     await adminStatusHyphenAlias.filter?.(ctx, next);
+    await adminStatusHyphenAlias.handler(ctx);
 
-    expect(next).not.toHaveBeenCalled();
+    expect(next).toHaveBeenCalledExactlyOnceWith();
     expect(select).not.toHaveBeenCalled();
   });
 });

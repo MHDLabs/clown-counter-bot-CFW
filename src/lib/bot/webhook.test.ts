@@ -35,6 +35,7 @@ function testDatabase(
       };
       return query;
     },
+    run: async () => ({ meta: { changes: 1 } }),
   } as unknown as AppDb;
 }
 
@@ -241,6 +242,53 @@ describe("grammY Cloudflare webhook", () => {
       chat_id: -100123,
       allow_sending_without_reply: true,
     });
+  });
+
+  it("records a Persian clown text trigger sent as a reply through the real webhook handler chain", async () => {
+    const bot = new Bot("123456:fake_token", {
+      botId: fakeBotInfo.id,
+      database: testDatabase(),
+      plugins: [i18nMiddleware(), replyToMiddleware],
+    });
+    const seenMessages: string[] = [];
+    bot.use(async (ctx, next) => {
+      seenMessages.push(ctx.msg?.text ?? "<no-text>");
+      await next();
+    });
+    bot.registerHandlers(...handlers);
+    const calls: { method: string; payload: Record<string, unknown> }[] = [];
+    bot.api.config.use(async (_previous, method, payload) => {
+      calls.push({ method, payload });
+      return { ok: true, result: method === "getMe" ? fakeBotInfo : true } as never;
+    });
+    const webhook = webhookCallback(bot, "cloudflare-mod", { secretToken: "test-webhook-secret" });
+    const response = await webhook(
+      new Request("https://bot.test/telegram", {
+        method: "POST",
+        headers: { "content-type": "application/json", "X-Telegram-Bot-Api-Secret-Token": "test-webhook-secret" },
+        body: JSON.stringify({
+          update_id: 5,
+          message: {
+            message_id: 5,
+            from: { id: 10, is_bot: false, first_name: "Test", language_code: "fa" },
+            chat: { id: -100123, type: "supergroup", title: "Test group" },
+            date: 1,
+            text: "دلقک",
+            reply_to_message: {
+              message_id: 3,
+              from: { id: 20, is_bot: false, first_name: "Target" },
+              chat: { id: -100123, type: "supergroup", title: "Test group" },
+              date: 1,
+              text: "Target message",
+            },
+          },
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(seenMessages).toEqual(["دلقک"]);
+    expect(calls.some((call) => call.method === "sendRichMessage")).toBe(true);
   });
 
   it("offers the language panel using the persisted preference", async () => {

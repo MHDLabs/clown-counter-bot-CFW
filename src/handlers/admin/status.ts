@@ -471,12 +471,12 @@ export const adminStatusHyphenAlias: MessageHandler = {
   kind: "message",
   filter: async (ctx, next) => {
     if (ctx.chat?.type !== "private" || !/^\/admin-status(?:\s|$)/.test(ctx.msg?.text ?? "")) {
-      return await next();
+      return;
     }
-    if (!isOwner(ctx)) return;
-    return await handleOwnerCommand(ctx);
+
+    return await next();
   },
-  handler: async () => undefined,
+  handler: handleOwnerCommand,
 };
 
 async function setWhitelistEnabled(ctx: BotContext, enabled: boolean) {

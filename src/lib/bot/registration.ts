@@ -7,17 +7,25 @@ import type { Handler, MessageHandler } from "@/handlers";
 
 import type { BotContext } from ".";
 
-import { isInGroup } from "./filters";
-
 /** Middlewares a single `MessageHandler` registers, in execution order. */
 function messageChain(handler: MessageHandler): MiddlewareFn<BotContext>[] {
-  const chain: MiddlewareFn<BotContext>[] = [];
+  return [
+    async (ctx, next) => {
+      if (handler.inGroup && ctx.chat?.type !== "group" && ctx.chat?.type !== "supergroup") {
+        return await next();
+      }
 
-  if (handler.inGroup) chain.push(isInGroup);
-  if (handler.filter) chain.push(handler.filter);
-  chain.push(handler.handler);
+      if (handler.filter) {
+        let matched = false;
+        await handler.filter(ctx, async () => {
+          matched = true;
+        });
+        if (!matched) return await next();
+      }
 
-  return chain;
+      return await handler.handler(ctx);
+    },
+  ];
 }
 
 /** Binds every handler to `bot`; command handlers go into the single, shared `commands` group. */
