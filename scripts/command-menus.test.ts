@@ -31,14 +31,8 @@ describe("Telegram command menus", () => {
       "clowngifs",
       "clownstickers",
       "setcooldown",
-      "setgif",
-      "removegif",
-      "setsticker",
-      "removesticker",
-      "setunclowngif",
-      "removeunclowngif",
-      "setunclownsticker",
-      "removeunclownsticker",
+      "trigger",
+      "triggers",
       "resetstats",
     ]);
   });

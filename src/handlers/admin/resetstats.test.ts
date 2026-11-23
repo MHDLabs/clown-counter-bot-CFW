@@ -18,6 +18,7 @@ function createCallbackContext(status: string) {
     answerCallbackQuery,
     editRichMessage,
     getAuthor: vi.fn().mockResolvedValue({ status }),
+    t: (key: string) => key,
   } as unknown as BotContext;
 
   return { ctx, answerCallbackQuery, editRichMessage };

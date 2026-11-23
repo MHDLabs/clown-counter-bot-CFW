@@ -1,13 +1,7 @@
 const settingsCommands = [
   { command: "setcooldown", description: "Set group vote cooldown" },
-  { command: "setgif", description: "Add clown GIF by reply" },
-  { command: "removegif", description: "Remove clown GIF by reply" },
-  { command: "setsticker", description: "Add clown sticker by reply" },
-  { command: "removesticker", description: "Remove clown sticker by reply" },
-  { command: "setunclowngif", description: "Add unclown GIF by reply" },
-  { command: "removeunclowngif", description: "Remove unclown GIF by reply" },
-  { command: "setunclownsticker", description: "Add unclown sticker by reply" },
-  { command: "removeunclownsticker", description: "Remove unclown sticker by reply" },
+  { command: "trigger", description: "Configure a custom GIF or sticker action" },
+  { command: "triggers", description: "List and manage custom GIFs and stickers" },
   { command: "resetstats", description: "Reset group statistics" },
 ];
 
