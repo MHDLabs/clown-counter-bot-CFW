@@ -19,9 +19,7 @@ function partsAt(date: Date, timeZone: string): Record<string, number> {
   }).formatToParts(date);
 
   return Object.fromEntries(
-    parts
-      .filter((part) => part.type !== "literal")
-      .map((part) => [part.type, Number(part.value)]),
+    parts.filter((part) => part.type !== "literal").map((part) => [part.type, Number(part.value)]),
   );
 }
 
@@ -39,21 +37,10 @@ function offsetAt(instant: number, timeZone: string): number {
   return localAsUtc - instant;
 }
 
-export function dayBoundsInTimeZone(
-  date = new Date(),
-  timeZone = TIME_ZONE,
-): { start: number; end: number } {
+export function dayBoundsInTimeZone(date = new Date(), timeZone = TIME_ZONE): { start: number; end: number } {
   const local = partsAt(date, timeZone);
-  const localMidnight = Date.UTC(
-    local["year"]!,
-    local["month"]! - 1,
-    local["day"]!,
-  );
-  const nextLocalMidnight = Date.UTC(
-    local["year"]!,
-    local["month"]! - 1,
-    local["day"]! + 1,
-  );
+  const localMidnight = Date.UTC(local["year"]!, local["month"]! - 1, local["day"]!);
+  const nextLocalMidnight = Date.UTC(local["year"]!, local["month"]! - 1, local["day"]! + 1);
 
   return {
     start: localMidnight - offsetAt(localMidnight, timeZone),
