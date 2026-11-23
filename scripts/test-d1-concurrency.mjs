@@ -105,17 +105,17 @@ function localDateParts(date, timeZone) {
     hourCycle: "h23",
   }).formatToParts(date);
 
-  const values = Object.fromEntries(
+  const values = new Map(
     parts.filter((part) => part.type !== "literal").map((part) => [part.type, Number(part.value)]),
   );
 
   return {
-    year: values["year"]!,
-    month: values["month"]!,
-    day: values["day"]!,
-    hour: values["hour"]!,
-    minute: values["minute"]!,
-    second: values["second"]!,
+    year: Number(values.get("year")),
+    month: Number(values.get("month")),
+    day: Number(values.get("day")),
+    hour: Number(values.get("hour")),
+    minute: Number(values.get("minute")),
+    second: Number(values.get("second")),
   };
 }
 
