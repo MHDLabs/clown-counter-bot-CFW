@@ -198,18 +198,57 @@ describe("grammY Cloudflare webhook", () => {
     expect(JSON.stringify(sendRichMessage?.payload["rich_message"])).toContain("github.com/haashemi/clown-counter-bot");
   });
 
-  it("stays silent when group /clown has no replied target, matching upstream", async () => {
+  it.each([
+    { text: "/clown", locale: "en", expected: "Reply to a group member's message with /clown or 🤡 to cast a vote." },
+    { text: "/unclown", locale: "en", expected: "Reply to a group member's message with /unclown or 😇 to lower their score." },
+    { text: "🤡", locale: "fa", expected: "برای ثبت رأی دلقکی، روی پیام یکی از اعضای گروه پاسخ بده و /clown یا 🤡 را بفرست." },
+    { text: "😇", locale: "fa", expected: "برای کاهش امتیاز دلقکی، روی پیام یکی از اعضای گروه پاسخ بده و /unclown یا 😇 را بفرست." },
+  ] as const)("explains how to vote when $text has no replied target", async ({ text, locale, expected }) => {
     const bot = new Bot("123456:fake_token", {
       botId: fakeBotInfo.id,
-      database: testDatabase(),
+      database: testDatabase(locale),
       plugins: [i18nMiddleware(), replyToMiddleware],
     });
     bot.registerHandlers(...handlers);
     const calls: { method: string; payload: Record<string, unknown> }[] = [];
     bot.api.config.use(async (_previous, method, payload) => {
       calls.push({ method, payload });
-      const result = method === "getMe" ? fakeBotInfo : true;
-      return { ok: true, result } as never;
+      return { ok: true, result: method === "getMe" ? fakeBotInfo : true } as never;
+    });
+    const webhook = webhookCallback(bot, "cloudflare-mod", { secretToken: "test-webhook-secret" });
+    const message: Record<string, unknown> = {
+      message_id: 4,
+      from: { id: 10, is_bot: false, first_name: "Test", language_code: locale },
+      chat: { id: -100123, type: "supergroup", title: "Test group" },
+      date: 1,
+      text,
+    };
+    if (text.startsWith("/")) message["entities"] = [{ offset: 0, length: text.length, type: "bot_command" }];
+    const response = await webhook(
+      new Request("https://bot.test/telegram", {
+        method: "POST",
+        headers: { "content-type": "application/json", "X-Telegram-Bot-Api-Secret-Token": "test-webhook-secret" },
+        body: JSON.stringify({ update_id: 4, message }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    const sendRichMessage = calls.find((call) => call.method === "sendRichMessage");
+    expect(JSON.stringify(sendRichMessage?.payload["rich_message"])).toContain(expected);
+    expect(sendRichMessage?.payload["reply_parameters"]).toMatchObject({ message_id: 4, chat_id: -100123 });
+  });
+
+  it("explains how to vote when a configured clown GIF is sent without a replied target", async () => {
+    const bot = new Bot("123456:fake_token", {
+      botId: fakeBotInfo.id,
+      database: testDatabase("en", undefined, { group: { gifIds: ["gif-one"], stickerIds: null } }),
+      plugins: [i18nMiddleware(), replyToMiddleware],
+    });
+    bot.registerHandlers(...handlers);
+    const calls: { method: string; payload: Record<string, unknown> }[] = [];
+    bot.api.config.use(async (_previous, method, payload) => {
+      calls.push({ method, payload });
+      return { ok: true, result: method === "getMe" ? fakeBotInfo : true } as never;
     });
     const webhook = webhookCallback(bot, "cloudflare-mod", { secretToken: "test-webhook-secret" });
     const response = await webhook(
@@ -217,24 +256,23 @@ describe("grammY Cloudflare webhook", () => {
         method: "POST",
         headers: { "content-type": "application/json", "X-Telegram-Bot-Api-Secret-Token": "test-webhook-secret" },
         body: JSON.stringify({
-          update_id: 4,
+          update_id: 21,
           message: {
-            message_id: 4,
+            message_id: 21,
             from: { id: 10, is_bot: false, first_name: "Test", language_code: "en" },
             chat: { id: -100123, type: "supergroup", title: "Test group" },
             date: 1,
-            text: "/clown",
-            entities: [{ offset: 0, length: 6, type: "bot_command" }],
+            animation: { file_id: "gif-one", file_unique_id: "gif-unique", width: 1, height: 1, duration: 1 },
           },
         }),
       }),
     );
 
     expect(response.status).toBe(200);
-
     const sendRichMessage = calls.find((call) => call.method === "sendRichMessage");
-
-    expect(sendRichMessage).toBeUndefined();
+    expect(JSON.stringify(sendRichMessage?.payload["rich_message"])).toContain(
+      "Reply to a group member's message with /clown or 🤡 to cast a vote.",
+    );
   });
 
   it("records a Persian clown text trigger sent as a reply through the real webhook handler chain", async () => {

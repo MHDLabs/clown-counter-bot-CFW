@@ -136,12 +136,12 @@ export async function respondToClownCooldown(ctx: BotContext, data: Data, expire
 }
 
 async function voteHandler(ctx: BotContext, quantity: -1 | 1) {
+  const prefix = quantity > 0 ? "cmd_clown" : "cmd_unclown";
   const data = getData(ctx);
 
-  if (!data) return;
+  if (!data) return await ctx.replyTo(ctx.msg, ctx.t(`${prefix}_usage`));
 
   const { messageId, group, voter, clown } = data;
-  const prefix = quantity > 0 ? "cmd_clown" : "cmd_unclown";
   const reply = (text: string) =>
     ctx.richReply(text, {
       reply_parameters: { message_id: messageId, chat_id: group.id, allow_sending_without_reply: true },
