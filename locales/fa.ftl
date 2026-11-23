@@ -11,6 +11,11 @@ cmd_start =
 
     🌐 تغییر زبان: /language
 
+    👨‍💻 سازنده: { $creator }
+    🆔 شناسه مالک ربات: { $owner_id }
+    📢 کانال سازنده: { $channel }
+    🧩 سورس پروژه: { $repository }
+
     🤡 @MHDLabs_clownbot
 
 cmd_privacy =
@@ -34,13 +39,16 @@ cmd_privacy =
     ❤️ امیدواریم که در حین استفاده از این ربات حسابی بهتون خوش بگذره!
 
 cmd_source =
-    سورس‌کد دلقک‌شمار در مخزن زیر به‌صورت عمومی قابل مشاهده است. این مخزن فعلاً فایل LICENSE ندارد؛ بنابراین شرایط استفادهٔ مجدد، ویرایش و بازنشر مشخص نشده است.
+    🧩 سورس‌کد پروژه به‌صورت عمومی در GitHub در دسترس است.
 
-    مخزن پروژه:
-    https://github.com/MHDLabs/clown-counter-bot-CFW
+    👨‍💻 سازنده: { $creator }
+    🆔 شناسه مالک ربات: { $owner_id }
+    📢 کانال سازنده: { $channel }
+    🔗 مخزن پروژه: { $repository }
 
-cmd_creator_credit = سازندهٔ پروژه: { $creator }
+cmd_creator_credit = سازندهٔ پروژه: { $creator } — شناسه مالک: { $owner_id }
 cmd_creator_channel = کانال سازنده
+cmd_source_repository = مشاهده سورس پروژه
 
 cmd_language_prompt = زبان پاسخ‌های ربات را انتخاب کنید:
 cmd_language_persian = فارسی
@@ -416,7 +424,7 @@ admin_button_remove_group = حذف از whitelist
 admin_button_enable_whitelist = فعال‌کردن whitelist
 admin_button_disable_whitelist = خاموش‌کردن whitelist
 admin_button_creator_channel = کانال سازنده
-admin_creator = سازندهٔ پروژه: { $creator }
+admin_creator = سازندهٔ پروژه: { $creator } — شناسه مالک ربات: { $owner_id }
 admin_whitelist_needs_group = پیش از فعال‌کردن whitelist، دست‌کم یک گروه را به فهرست مجاز اضافه کنید.
 admin_group_not_active = تلگرام تأیید می‌کند که ربات دیگر عضو این گروه نیست. برای افزودن آن به whitelist، ابتدا ربات را دوباره به گروه اضافه کنید.
 admin_error = بارگذاری پنل انجام نشد. کمی بعد دوباره تلاش کنید.
@@ -452,3 +460,24 @@ trigger_saved = عملیات رسانهٔ سفارشی ذخیره شد.
 trigger_removed = عملیات رسانهٔ سفارشی حذف شد.
 trigger_not_found = این رسانهٔ ذخیره‌شده پیدا نشد.
 trigger_stale_media = پیش‌نمایش { $media } ذخیره‌شده ممکن نشد؛ با این حال می‌توانید آن را با دکمه حذف کنید.
+
+
+# Public owner identity and whitelist notices
+help_public_credits =
+    👨‍💻 سازنده: { $creator }
+    🆔 شناسه مالک ربات: { $owner_id }
+    📢 کانال سازنده: { $channel }
+    🔗 سورس پروژه: { $repository }
+
+whitelist_group_disabled =
+    🚫 ربات در این گروه غیرفعال شد.
+
+    حالت whitelist برای ربات فعال است و این گروه در فهرست گروه‌های مجاز قرار ندارد. از این لحظه ربات هیچ فرمان یا پیام گروه را پردازش نمی‌کند. برای فعال‌سازی دوباره، مالک ربات باید این گروه را به فهرست مجاز اضافه کند.
+
+    👨‍💻 سازنده: { $creator }
+    🆔 شناسه مالک ربات: { $owner_id }
+    📢 کانال سازنده: { $channel }
+    🔗 سورس پروژه: { $repository }
+
+whitelist_button_source = 🧩 سورس پروژه
+whitelist_button_channel = 📢 کانال سازنده

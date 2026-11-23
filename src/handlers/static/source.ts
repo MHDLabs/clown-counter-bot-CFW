@@ -2,7 +2,7 @@ import { InlineKeyboard } from "grammy";
 
 import type { CommandHandler } from "@/handlers";
 
-import { CREATOR } from "@/lib/creator";
+import { CREATOR, getOwnerTelegramId } from "@/lib/creator";
 
 export const sourceHandler: CommandHandler = {
   kind: "command",
@@ -10,9 +10,17 @@ export const sourceHandler: CommandHandler = {
   description: "🪄 سورس‌کد ربات",
   scopes: [{ type: "all_private_chats" }],
   handler: async (ctx) => {
-    const keyboard = new InlineKeyboard().url(ctx.t("cmd_creator_channel"), CREATOR.channelUrl);
+    const keyboard = new InlineKeyboard()
+      .url(ctx.t("cmd_source_repository"), CREATOR.repositoryUrl)
+      .url(ctx.t("cmd_creator_channel"), CREATOR.channelUrl);
+
     return await ctx.richReply(
-      `${ctx.t("cmd_source")}\n\n${ctx.t("cmd_creator_credit", { creator: CREATOR.username })}`,
+      ctx.t("cmd_source", {
+        creator: CREATOR.username,
+        owner_id: getOwnerTelegramId(ctx.botAdminIds),
+        channel: CREATOR.channel,
+        repository: CREATOR.repositoryUrl,
+      }),
       {
         reply_markup: keyboard,
         ...(ctx.msg

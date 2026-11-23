@@ -5,6 +5,8 @@ import { InlineKeyboard } from "grammy";
 import type { CallbackQueryHandler, CommandHandler } from "@/handlers";
 import type { BotContext } from "@/lib/bot";
 
+import { CREATOR, getOwnerTelegramId } from "@/lib/creator";
+
 const scopes: BotCommandScope[] = [
   { type: "all_private_chats" },
   { type: "all_group_chats" },
@@ -96,7 +98,20 @@ function helpBlocks(ctx: BotContext, page: HelpPage) {
 }
 
 function richMessage(ctx: BotContext, page: HelpPage) {
-  return { blocks: helpBlocks(ctx, page), is_rtl: ctx.locale === "fa" };
+  const blocks = helpBlocks(ctx, page);
+  blocks.push(
+    { type: "divider" as const },
+    {
+      type: "paragraph" as const,
+      text: ctx.t("help_public_credits", {
+        creator: CREATOR.username,
+        owner_id: getOwnerTelegramId(ctx.botAdminIds),
+        channel: CREATOR.channel,
+        repository: CREATOR.repositoryUrl,
+      }),
+    },
+  );
+  return { blocks, is_rtl: ctx.locale === "fa" };
 }
 
 export const helpHandler: CommandHandler = {

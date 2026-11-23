@@ -48,8 +48,10 @@ export class Bot extends GrammyBot<BotContext> {
       ctx.botAdminIds = botAdminIds;
       await next();
     });
-    this.use(groupWhitelistMiddleware);
+    // Load locale/context helpers before the whitelist gate so public notices
+    // use each chat's selected language.
     plugins.forEach((plugin) => this.use(plugin));
+    this.use(groupWhitelistMiddleware);
 
     this.api.config.use(autoRetryPlugin());
   }

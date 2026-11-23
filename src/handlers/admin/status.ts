@@ -7,8 +7,16 @@ import type { CallbackQueryHandler, CommandHandler, MessageHandler } from "@/han
 import type { BotContext } from "@/lib/bot";
 
 import { schema } from "@/db";
-import { GROUP_WHITELIST_SETTING, isGroupAllowlisted, isGroupWhitelistEnabled } from "@/lib/bot/group-whitelist";
-import { CREATOR } from "@/lib/creator";
+import {
+  advanceGroupWhitelistEpoch,
+  getGroupWhitelistEpoch,
+  GROUP_WHITELIST_SETTING,
+  isGroupAllowlisted,
+  isGroupWhitelistEnabled,
+  notifyUnallowlistedGroups,
+  sendGroupWhitelistDisabledNotice,
+} from "@/lib/bot/group-whitelist";
+import { CREATOR, getOwnerTelegramId } from "@/lib/creator";
 
 const GROUPS_PER_PAGE = 8;
 const CLOWNS_PER_PAGE = 8;
@@ -185,7 +193,13 @@ function homeBlocks(ctx: BotContext, metrics: Awaited<ReturnType<typeof homeMetr
     },
     ...(notice ? [{ type: "paragraph" as const, text: notice }] : []),
     { type: "divider" as const },
-    { type: "footer" as const, text: ctx.t("admin_creator", { creator: CREATOR.username }) },
+    {
+      type: "footer" as const,
+      text: ctx.t("admin_creator", {
+        creator: CREATOR.username,
+        owner_id: getOwnerTelegramId(ctx.botAdminIds),
+      }),
+    },
   ];
   return blocks;
 }
@@ -479,11 +493,17 @@ export const adminStatusHyphenAlias: MessageHandler = {
   handler: handleOwnerCommand,
 };
 
-async function setWhitelistEnabled(ctx: BotContext, enabled: boolean) {
+async function setWhitelistEnabled(ctx: BotContext, enabled: boolean): Promise<number | null> {
+  // Advance the generation before enabling the gate, so concurrent group updates
+  // cannot send a notice using the previous activation's generation.
+  const epoch = enabled ? await advanceGroupWhitelistEpoch(ctx) : null;
+
   await ctx.db
     .insert(schema.botSettings)
     .values({ key: GROUP_WHITELIST_SETTING, value: enabled ? "enabled" : "disabled" })
     .onConflictDoUpdate({ target: schema.botSettings.key, set: { value: enabled ? "enabled" : "disabled" } });
+
+  return epoch;
 }
 
 async function toggleAllowlist(ctx: BotContext, groupId: string): Promise<boolean> {
@@ -528,7 +548,10 @@ async function whitelistCallback(ctx: BotContext, data: string, message: Message
     }
   }
 
-  await setWhitelistEnabled(ctx, !enabled);
+  const epoch = await setWhitelistEnabled(ctx, !enabled);
+  if (epoch !== null) {
+    await notifyUnallowlistedGroups(ctx, epoch);
+  }
   await renderHome(ctx, message);
   return true;
 }
@@ -537,7 +560,16 @@ async function allowGroupCallback(ctx: BotContext, data: string, message: Messag
   const match = /^admin:allow:(-?\d{1,20})$/.exec(data);
   if (!match?.[1]) return false;
   const groupId = match[1];
+  const wasAllowed = await isGroupAllowlisted(ctx, groupId);
+  const whitelistEnabled = await isGroupWhitelistEnabled(ctx);
   const changed = await toggleAllowlist(ctx, groupId);
+
+  // Removing a group from an active allowlist disables it immediately.
+  if (changed && wasAllowed && whitelistEnabled) {
+    const epoch = await getGroupWhitelistEpoch(ctx);
+    await sendGroupWhitelistDisabledNotice(ctx, groupId, epoch);
+  }
+
   await renderGroup(ctx, {
     groupId,
     requestedPage: 0,
