@@ -7,6 +7,7 @@ import { Bot, i18nMiddleware, replyToMiddleware } from "@/lib/bot";
 
 export interface Env {
   BOT_TOKEN: string;
+  BOT_USERNAME?: string;
   BOT_ADMIN_IDS?: string;
   DB: D1Database;
 }
@@ -52,6 +53,7 @@ export default {
       const botId = Number(token.slice(0, token.indexOf(":")));
       const bot = new Bot(token, {
         botId,
+        botUsername: env.BOT_USERNAME ?? "MHDLabs_clownbot",
         database,
         botAdminIds: parseBotAdminIds(env.BOT_ADMIN_IDS),
         plugins: [i18nMiddleware(), replyToMiddleware],
