@@ -323,7 +323,13 @@ describe("grammY Cloudflare webhook", () => {
 
     expect(JSON.stringify(sendRichMessage?.payload["rich_message"])).toContain("زبان پاسخ‌های ربات را انتخاب کنید");
     expect(sendRichMessage?.payload["reply_markup"]).toMatchObject({
-      inline_keyboard: [[{ text: "\u200Fفارسی" }, { text: "\u200FEnglish" }]],
+      inline_keyboard: [
+        [
+          { text: "\u200Fفارسی", callback_data: "language:fa" },
+          { text: "\u200FEnglish", callback_data: "language:en" },
+        ],
+        [{ text: "\u200F✖ بستن", callback_data: "panel:close" }],
+      ],
     });
   });
 
