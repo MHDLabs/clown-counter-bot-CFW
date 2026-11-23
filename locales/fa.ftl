@@ -11,11 +11,6 @@ cmd_start =
 
     🌐 تغییر زبان: /language
 
-    👨‍💻 سازنده: { $creator }
-    🆔 شناسه مالک ربات: { $owner_id }
-    📢 کانال سازنده: { $channel }
-    🧩 سورس پروژه: { $repository }
-
     🤡 @MHDLabs_clownbot
 
 cmd_privacy =

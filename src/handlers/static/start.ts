@@ -8,14 +8,13 @@ export const startHandler: CommandHandler = {
   description: "🎉 شروع دلقک بازی",
   scopes: [{ type: "all_private_chats" }],
   handler: async (ctx) => {
-    return await ctx.replyTo(
-      ctx.msg,
-      ctx.t("cmd_start", {
-        creator: CREATOR.username,
-        owner_id: getOwnerTelegramId(ctx.botAdminIds),
-        channel: CREATOR.channel,
-        repository: CREATOR.repositoryUrl,
-      }),
-    );
+    const credits = ctx.t("help_public_credits", {
+      creator: CREATOR.username,
+      owner_id: getOwnerTelegramId(ctx.botAdminIds),
+      channel: CREATOR.channel,
+      repository: CREATOR.repositoryUrl,
+    });
+
+    return await ctx.replyTo(ctx.msg, `${ctx.t("cmd_start")}\n\n${credits}`);
   },
 };
