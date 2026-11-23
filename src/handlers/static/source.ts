@@ -20,20 +20,17 @@ export const sourceHandler: CommandHandler = {
       repository: CREATOR.repositoryUrl,
     });
 
-    return await ctx.richReply(
-      `${ctx.t("cmd_source")}\n\n${credits}`,
-      {
-        reply_markup: keyboard,
-        ...(ctx.msg
-          ? {
-              reply_parameters: {
-                message_id: ctx.msg.message_id,
-                chat_id: ctx.msg.chat.id,
-                allow_sending_without_reply: true,
-              },
-            }
-          : {}),
-      },
-    );
+    return await ctx.richReply(`${ctx.t("cmd_source")}\n\n${credits}`, {
+      reply_markup: keyboard,
+      ...(ctx.msg
+        ? {
+            reply_parameters: {
+              message_id: ctx.msg.message_id,
+              chat_id: ctx.msg.chat.id,
+              allow_sending_without_reply: true,
+            },
+          }
+        : {}),
+    });
   },
 };
