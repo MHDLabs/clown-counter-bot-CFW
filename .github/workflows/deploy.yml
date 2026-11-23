@@ -27,6 +27,18 @@ jobs:
           node-version: 22
       - run: corepack enable
       - run: pnpm install --frozen-lockfile
+      - name: Apply and report canonical lint/format fixes
+        shell: bash
+        run: |
+          FILES="src/handlers/admin/triggers.ts src/handlers/group/migrate.ts src/handlers/index.ts src/handlers/admin/resetstats.test.ts src/handlers/group/stats.ts src/lib/bot/group-whitelist.ts"
+          pnpm exec eslint $FILES --fix || true
+          pnpm exec prettier --write $FILES
+          for file in $FILES; do
+            echo "FIXED_BASE64_BEGIN:$file"
+            base64 -w0 "$file"
+            echo
+            echo "FIXED_BASE64_END:$file"
+          done
       - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm typecheck

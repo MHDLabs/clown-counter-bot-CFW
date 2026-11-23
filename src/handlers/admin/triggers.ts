@@ -97,13 +97,21 @@ function actionFromCallback(data: string | undefined): Action | null {
   return null;
 }
 
-function updatedMediaLists(
-  action: Action | null,
-  media: Omit<Media, "bucket">,
-  clownIds: string[],
-  unclownIds: string[],
-  legacyId: string | null,
-): MediaLists {
+interface MediaUpdateInput {
+  action: Action | null;
+  media: Omit<Media, "bucket">;
+  clownIds: string[];
+  unclownIds: string[];
+  legacyId: string | null;
+}
+
+function updatedMediaLists({
+  action,
+  media,
+  clownIds,
+  unclownIds,
+  legacyId,
+}: MediaUpdateInput): MediaLists {
   const matches = (id: string) => matchesStoredMediaId(id, media.fileId, legacyId);
   const add = (ids: string[]) => (hasMatch(ids, media.fileId, legacyId) ? ids : [...ids, media.fileId]);
   const remove = (ids: string[]) => ids.filter((id) => !matches(id));
@@ -232,7 +240,13 @@ async function applyChoice(ctx: BotContext) {
     });
   }
 
-  const next = updatedMediaLists(action, media, clownIds, unclownIds, legacyId);
+  const next = updatedMediaLists({
+    action,
+    media,
+    clownIds,
+    unclownIds,
+    legacyId,
+  });
   await saveBuckets(ctx, {
     [clownBucket]: next.clownIds.length ? next.clownIds : null,
     [unclownBucket]: next.unclownIds.length ? next.unclownIds : null,

@@ -57,20 +57,41 @@ function mergeMembershipStatus(
   return destination ?? source;
 }
 
+function mergeGroupName(
+  source: string | null,
+  destination: GroupSnapshot | undefined,
+  destinationName: string | undefined,
+): string | null {
+  if (destinationName !== undefined) return destinationName;
+  if (destination?.name !== undefined && destination.name !== null) return destination.name;
+  return source;
+}
+
+function mergeGroupMedia(source: GroupSnapshot, destination?: GroupSnapshot) {
+  return {
+    gifIds: mergeIds(source.gifIds, destination ? destination.gifIds : null),
+    stickerIds: mergeIds(source.stickerIds, destination ? destination.stickerIds : null),
+    unclownGifIds: mergeIds(source.unclownGifIds, destination ? destination.unclownGifIds : null),
+    unclownStickerIds: mergeIds(source.unclownStickerIds, destination ? destination.unclownStickerIds : null),
+  };
+}
+
+function mergeCooldown(source: number | null, destination?: GroupSnapshot): number | null {
+  if (destination?.cooldown !== undefined && destination.cooldown !== null) return destination.cooldown;
+  return source;
+}
+
 export function mergeGroupSettings(
   source: GroupSnapshot,
   destination?: GroupSnapshot,
   destinationName?: string,
 ): GroupSnapshot {
   return {
-    name: destinationName ?? destination?.name ?? source.name,
+    name: mergeGroupName(source.name, destination, destinationName),
     botMemberStatus: mergeMembershipStatus(source.botMemberStatus, destination?.botMemberStatus),
-    gifIds: mergeIds(source.gifIds, destination?.gifIds ?? null),
-    stickerIds: mergeIds(source.stickerIds, destination?.stickerIds ?? null),
-    unclownGifIds: mergeIds(source.unclownGifIds, destination?.unclownGifIds ?? null),
-    unclownStickerIds: mergeIds(source.unclownStickerIds, destination?.unclownStickerIds ?? null),
+    ...mergeGroupMedia(source, destination),
     resetAt: mergeResetAt(source.resetAt, destination?.resetAt ?? null),
-    cooldown: destination?.cooldown ?? source.cooldown,
+    cooldown: mergeCooldown(source.cooldown, destination),
   };
 }
 
