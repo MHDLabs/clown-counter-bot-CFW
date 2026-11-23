@@ -632,7 +632,7 @@ export const triggerCallbacks: CallbackQueryHandler[] = [
   },
   {
     kind: "callback_query",
-    data: /^trigger:delete:(gifIds|stickerIds|unclownGifIds|unclownStickerIds):(\d{1,20})$/,
+    data: /^trigger:delete:(gifIds|stickerIds|unclownGifIds|unclownStickerIds):([a-f0-9]{24})$/,
     handler: deleteListedTrigger,
   },
   {
