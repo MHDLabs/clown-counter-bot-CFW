@@ -55,7 +55,6 @@ const fakeBotInfo = {
   supports_join_request_queries: false,
 };
 
-
 function statsTestDatabase(): AppDb {
   let selectIndex = 0;
   const selectResults: unknown[][] = [[], [], [{ total: 0 }], []];
@@ -82,7 +81,11 @@ function statsTestDatabase(): AppDb {
       userPreferences: { findFirst: async () => ({ locale: "en" }) },
       groups: { findFirst: async () => undefined },
     },
-    select: () => createQuery(selectResults[selectIndex++] ?? []),
+    select: () => {
+      const result = selectResults[selectIndex] ?? [];
+      selectIndex += 1;
+      return createQuery(result);
+    },
   } as unknown as AppDb;
 }
 
@@ -130,48 +133,46 @@ describe("grammY Cloudflare webhook", () => {
     ).toEqual(ids);
   });
 
-  it.each(["/stats", "/stats@MHDLabs_clownbot"])(
-    "handles the group statistics command %s",
-    async (command) => {
-      const bot = new Bot("123456:fake_token", {
-        botId: fakeBotInfo.id,
-        database: statsTestDatabase(),
-        plugins: [i18nMiddleware(), replyToMiddleware],
-      });
-      bot.registerHandlers(...handlers);
+  it.each(["/stats", "/stats@MHDLabs_clownbot"])("handles the group statistics command %s", async (command) => {
+    const bot = new Bot("123456:fake_token", {
+      botId: fakeBotInfo.id,
+      database: statsTestDatabase(),
+      plugins: [i18nMiddleware(), replyToMiddleware],
+    });
+    bot.registerHandlers(...handlers);
 
-      const calls: { method: string; payload: Record<string, unknown> }[] = [];
-      bot.api.config.use(async (_previous, method, payload) => {
-        calls.push({ method, payload });
-        return { ok: true, result: method === "getMe" ? fakeBotInfo : true } as never;
-      });
+    const calls: { method: string; payload: Record<string, unknown> }[] = [];
+    bot.api.config.use(async (_previous, method, payload) => {
+      calls.push({ method, payload });
+      return { ok: true, result: method === "getMe" ? fakeBotInfo : true } as never;
+    });
 
-      const webhook = webhookCallback(bot, "cloudflare-mod", { secretToken: "test-webhook-secret" });
-      const response = await webhook(
-        new Request("https://bot.test/telegram", {
-          method: "POST",
-          headers: {
-            "content-type": "application/json",
-            "X-Telegram-Bot-Api-Secret-Token": "test-webhook-secret",
+    const webhook = webhookCallback(bot, "cloudflare-mod", { secretToken: "test-webhook-secret" });
+    const response = await webhook(
+      new Request("https://bot.test/telegram", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "X-Telegram-Bot-Api-Secret-Token": "test-webhook-secret",
+        },
+        body: JSON.stringify({
+          update_id: 30,
+          message: {
+            message_id: 30,
+            from: { id: 10, is_bot: false, first_name: "Test", language_code: "en" },
+            chat: { id: -100123, type: "supergroup", title: "Test group" },
+            date: 1,
+            text: command,
+            entities: [{ offset: 0, length: command.length, type: "bot_command" }],
           },
-          body: JSON.stringify({
-            update_id: 30,
-            message: {
-              message_id: 30,
-              from: { id: 10, is_bot: false, first_name: "Test", language_code: "en" },
-              chat: { id: -100123, type: "supergroup", title: "Test group" },
-              date: 1,
-              text: command,
-              entities: [{ offset: 0, length: command.length, type: "bot_command" }],
-            },
-          }),
         }),
-      );
+      }),
+    );
 
-      expect(response.status).toBe(200);
-      expect(calls.some((call) => call.method === "sendRichMessage")).toBe(true);
-    },
-  );
+    expect(response.status).toBe(200);
+    expect(calls.some((call) => call.method === "sendRichMessage")).toBe(true);
+
+  });
 
   it("ignores a targeted group command addressed to a different bot", async () => {
     const bot = new Bot("123456:fake_token", {
@@ -211,6 +212,7 @@ describe("grammY Cloudflare webhook", () => {
     );
 
     expect(response.status).toBe(200);
+
     expect(calls).not.toContain("sendRichMessage");
   });
 
