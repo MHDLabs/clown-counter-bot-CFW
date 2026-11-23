@@ -134,10 +134,10 @@ describe("grammY Cloudflare webhook", () => {
   });
 
   it.each(["/stats", "/stats@MHDLabs_clownbot"])("handles the group statistics command %s", async (command) => {
-  const bot = new Bot("123456:fake_token", {
-    botId: fakeBotInfo.id,
-    database: statsTestDatabase(),
-    plugins: [i18nMiddleware(), replyToMiddleware],
+    const bot = new Bot("123456:fake_token", {
+      botId: fakeBotInfo.id,
+      database: statsTestDatabase(),
+      plugins: [i18nMiddleware(), replyToMiddleware],
   });
   bot.registerHandlers(...handlers);
 
