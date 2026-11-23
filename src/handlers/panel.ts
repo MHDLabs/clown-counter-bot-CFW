@@ -14,7 +14,9 @@ export const panelCloseHandler: CallbackQueryHandler = {
       await ctx.api.deleteMessage(message.chat.id, message.message_id);
     } catch {
       try {
-        await ctx.api.editMessageReplyMarkup(message.chat.id, message.message_id, { reply_markup: new InlineKeyboard() });
+        await ctx.api.editMessageReplyMarkup(message.chat.id, message.message_id, {
+          reply_markup: new InlineKeyboard(),
+        });
       } catch {
         // The panel may already have been deleted or become inaccessible.
       }
