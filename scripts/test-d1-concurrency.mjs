@@ -88,7 +88,11 @@ await command(
   `DELETE FROM clown_cooldown_attempts WHERE voter_id='${voter}' AND group_id IN ('${group}','${otherGroup}')`,
 );
 
-/** @param {Date} date @param {string} timeZone @returns {Record<string, number>} */
+/**
+ * @param {Date} date
+ * @param {string} timeZone
+ * @returns {{ year: number, month: number, day: number, hour: number, minute: number, second: number }}
+ */
 function localDateParts(date, timeZone) {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone,
@@ -101,21 +105,30 @@ function localDateParts(date, timeZone) {
     hourCycle: "h23",
   }).formatToParts(date);
 
-  return Object.fromEntries(
+  const values = Object.fromEntries(
     parts.filter((part) => part.type !== "literal").map((part) => [part.type, Number(part.value)]),
   );
+
+  return {
+    year: values["year"]!,
+    month: values["month"]!,
+    day: values["day"]!,
+    hour: values["hour"]!,
+    minute: values["minute"]!,
+    second: values["second"]!,
+  };
 }
 
 /** @param {number} instant @param {string} timeZone @returns {number} */
 function timezoneOffsetAt(instant, timeZone) {
   const parts = localDateParts(new Date(instant), timeZone);
   const localAsUtc = Date.UTC(
-    parts["year"],
-    parts["month"] - 1,
-    parts["day"],
-    parts["hour"],
-    parts["minute"],
-    parts["second"],
+    parts.year,
+    parts.month - 1,
+    parts.day,
+    parts.hour,
+    parts.minute,
+    parts.second,
   );
   return localAsUtc - instant;
 }
@@ -123,8 +136,8 @@ function timezoneOffsetAt(instant, timeZone) {
 /** @param {Date} date @param {string} timeZone @returns {{ start: number, end: number }} */
 function dayBoundsInTimeZone(date, timeZone) {
   const parts = localDateParts(date, timeZone);
-  const localMidnight = Date.UTC(parts["year"], parts["month"] - 1, parts["day"]);
-  const nextLocalMidnight = Date.UTC(parts["year"], parts["month"] - 1, parts["day"] + 1);
+  const localMidnight = Date.UTC(parts.year, parts.month - 1, parts.day);
+  const nextLocalMidnight = Date.UTC(parts.year, parts.month - 1, parts.day + 1);
 
   return {
     start: localMidnight - timezoneOffsetAt(localMidnight, timeZone),
