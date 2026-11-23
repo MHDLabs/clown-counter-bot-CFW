@@ -61,7 +61,7 @@ function createContext(options: {
           if (table !== schema.botSettings) return [];
           if (noticeValues.has(row["key"] ?? "")) return [];
           noticeValues.set(row["key"] ?? "", row["value"] ?? "");
-          return [{ key: row.key }];
+          return [{ key: row["key"] }];
         },
       };
       return query;
