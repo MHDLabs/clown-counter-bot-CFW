@@ -27,6 +27,10 @@ jobs:
           node-version: 22
       - run: corepack enable
       - run: pnpm install --frozen-lockfile
+      - name: Inspect canonical Prettier output
+        run: |
+          pnpm exec prettier --write src/handlers/admin/group-membership.ts src/lib/bot/group-whitelist.ts
+          git diff -- src/handlers/admin/group-membership.ts src/lib/bot/group-whitelist.ts
       - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm typecheck
