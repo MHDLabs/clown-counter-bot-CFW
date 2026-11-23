@@ -46,7 +46,7 @@ describe("Fluent localization", () => {
   it("loads the Persian and English catalogs with working variables", async () => {
     expect(translate("en", "cmd_clown_wait", { waitMin: 3 })).toContain("3");
     expect(translate("fa", "cmd_clown_wait", { waitMin: 3 })).toContain("۳");
-    expect(translate("en", "cmd_source")).toContain("github.com/MHDLabs/clown-counter-bot-CFW");
+    expect(translate("en", "cmd_source")).toContain("github.com/haashemi/clown-counter-bot");
     expect(translate("en", "cmd_stats_group", { clowns: "- Test", reset: "" })).toContain("\n");
   });
 });

@@ -1,8 +1,9 @@
 import type { Message } from "grammy/types";
 
+import { eq } from "drizzle-orm";
 import { GrammyError, InlineKeyboard } from "grammy";
 
-import type { schema } from "@/db";
+import { schema } from "@/db";
 import type { CallbackQueryHandler, CommandHandler } from "@/handlers";
 import type { BotContext } from "@/lib/bot";
 import type { GroupPatch } from "@/lib/utils";
@@ -54,10 +55,6 @@ function bucketFor(kind: MediaKind, action: Action): Bucket {
   return action === "clown" ? "stickerIds" : "unclownStickerIds";
 }
 
-function mediaLabel(ctx: BotContext, kind: MediaKind): string {
-  return ctx.t(kind === "animation" ? "trigger_media_animation" : "trigger_media_sticker");
-}
-
 function valuesFor(group: GroupMedia | undefined, bucket: Bucket): string[] {
   return group?.[bucket] ?? [];
 }
@@ -71,21 +68,18 @@ function promptKeyboard(ctx: BotContext, action: Action | null): InlineKeyboard 
   if (action !== "clown") keyboard.text(ctx.t("trigger_btn_clown"), "trigger:set:clown");
   if (action !== "unclown") keyboard.text(ctx.t("trigger_btn_unclown"), "trigger:set:unclown");
   if (action) keyboard.text(ctx.t("trigger_btn_remove"), "trigger:remove");
+  keyboard.row().text(ctx.t("panel_close"), "panel:close");
   return keyboard;
 }
 
 function promptBlocks(ctx: BotContext, kind: MediaKind, action: Action | null) {
-  const state = action
-    ? ctx.t(action === "clown" ? "trigger_state_clown" : "trigger_state_unclown")
-    : ctx.t("trigger_state_unset");
-
   return {
     blocks: [
       {
         type: "paragraph" as const,
         text: ctx.t("cmd_trigger_prompt", {
-          media: mediaLabel(ctx, kind),
-          state,
+          media: kind,
+          state: action ?? "none",
         }),
       },
     ],
@@ -125,12 +119,6 @@ function updatedMediaLists({ action, media, clownIds, unclownIds, legacyId }: Me
 
 function mediaLimitReached(action: Action | null, alreadyExists: boolean, targetIds: string[]): boolean {
   return action !== null && !alreadyExists && targetIds.length >= MAX_PER_KIND;
-}
-
-function displayAction(ctx: BotContext, action: Action | null): string {
-  if (action === "clown") return ctx.t("trigger_state_clown");
-  if (action === "unclown") return ctx.t("trigger_state_unclown");
-  return ctx.t("trigger_state_unset");
 }
 
 async function ownerOrGroupAdmin(ctx: BotContext): Promise<boolean> {
@@ -174,7 +162,7 @@ async function promptTrigger(ctx: BotContext) {
 
   const target = message.reply_to_message;
   const media = mediaFromMessage(target);
-  if (!target || !media) return await ctx.replyTo(message, ctx.t("cmd_trigger_usage"));
+  if (!target || !media) return await ctx.replyTo(message, ctx.t("cmd_trigger_usage", { max: MAX_PER_KIND }));
 
   const group = await loadGroup(ctx);
   const legacyId = getLegacyMediaId(media.fileId);
@@ -203,14 +191,14 @@ interface CallbackMessageReference {
 
 async function showMissingMedia(ctx: BotContext, message: CallbackMessageReference) {
   await ctx.answerCallbackQuery({
-    text: ctx.t("trigger_missing_media"),
+    text: ctx.t("trigger_gone"),
     show_alert: true,
   });
 
   return await ctx.editRichMessage({
     chatId: message.chat.id,
     messageId: message.message_id,
-    text: ctx.t("trigger_missing_media"),
+    text: ctx.t("trigger_gone"),
     options: { reply_markup: new InlineKeyboard() },
   });
 }
@@ -257,14 +245,25 @@ async function applyChoice(ctx: BotContext) {
     text: ctx.t(action ? "trigger_saved" : "trigger_removed"),
   });
 
-  return await ctx.editRichMessage({
-    chatId: promptMessage.chat.id,
-    messageId: promptMessage.message_id,
-    text: ctx.t("cmd_trigger_prompt", {
-      media: mediaLabel(ctx, media.kind),
-      state: displayAction(ctx, action),
-    }),
-    options: { reply_markup: promptKeyboard(ctx, action) },
+  try {
+    await ctx.api.deleteMessage(promptMessage.chat.id, promptMessage.message_id);
+  } catch {
+    try {
+      await ctx.api.editMessageReplyMarkup(promptMessage.chat.id, promptMessage.message_id, {
+        reply_markup: new InlineKeyboard(),
+      });
+    } catch {
+      // The previous selector may already be gone.
+    }
+  }
+
+  return await ctx.api.sendRichMessage(promptMessage.chat.id, promptBlocks(ctx, media.kind, action), {
+    reply_parameters: {
+      message_id: target.message_id,
+      chat_id: target.chat.id,
+      allow_sending_without_reply: true,
+    },
+    reply_markup: promptKeyboard(ctx, action),
   });
 }
 
@@ -310,41 +309,116 @@ function deleteCallback(bucket: Bucket, fileId: string): string | null {
   return key ? `trigger:delete:${bucket}:${key}` : null;
 }
 
+function triggerListKey(chatId: number): string {
+  return `trigger-list:${chatId}`;
+}
+
+async function readTrackedPreviewIds(ctx: BotContext, key: string): Promise<number[]> {
+  const [row] = await ctx.db
+    .select({ value: schema.botSettings.value })
+    .from(schema.botSettings)
+    .where(eq(schema.botSettings.key, key))
+    .limit(1);
+  if (!row) return [];
+
+  try {
+    const parsed: unknown = JSON.parse(row.value);
+    return Array.isArray(parsed)
+      ? parsed.filter((value): value is number => Number.isSafeInteger(value) && value > 0)
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+async function writeTrackedPreviewIds(ctx: BotContext, key: string, ids: number[]): Promise<void> {
+  if (ids.length === 0) {
+    await ctx.db.delete(schema.botSettings).where(eq(schema.botSettings.key, key));
+    return;
+  }
+
+  const value = JSON.stringify(ids);
+  await ctx.db
+    .insert(schema.botSettings)
+    .values({ key, value })
+    .onConflictDoUpdate({ target: schema.botSettings.key, set: { value } });
+}
+
+async function removePreviewMessage(ctx: BotContext, chatId: number, messageId: number): Promise<void> {
+  try {
+    await ctx.api.deleteMessage(chatId, messageId);
+  } catch {
+    try {
+      await ctx.api.editMessageReplyMarkup(chatId, messageId, new InlineKeyboard());
+    } catch {
+      // A stale preview does not prevent the remaining messages from being cleaned up.
+    }
+  }
+}
+
+async function cleanTrackedTriggerMessages(ctx: BotContext, key: string): Promise<void> {
+  if (!ctx.chat) return;
+  const chatId = ctx.chat.id;
+  const ids = await readTrackedPreviewIds(ctx, key);
+  await Promise.all(ids.map((messageId) => removePreviewMessage(ctx, chatId, messageId)));
+  await writeTrackedPreviewIds(ctx, key, []);
+}
+
+async function removeTrackedPreviewMessage(
+  ctx: BotContext,
+  key: string,
+  messageId: number,
+): Promise<void> {
+  const ids = await readTrackedPreviewIds(ctx, key);
+  await writeTrackedPreviewIds(ctx, key, ids.filter((id) => id !== messageId));
+}
+
 async function listTriggers(ctx: BotContext) {
   const message = ctx.msg;
   if (!message) return;
   if (!(await isAdmin(ctx))) return await ctx.replyTo(message, ctx.t("cmd_admin_only"));
 
+  const trackingKey = triggerListKey(message.chat.id);
+  await cleanTrackedTriggerMessages(ctx, trackingKey);
+
   const group = await loadGroup(ctx);
   const entries = listEntries(group);
   if (entries.length === 0) return await ctx.replyTo(message, ctx.t("cmd_triggers_empty"));
 
+  const previewMessageIds: number[] = [];
+
   for (const entry of entries) {
     const callbackData = deleteCallback(entry.bucket, entry.fileId);
     const keyboard = new InlineKeyboard();
-    if (callbackData) keyboard.text(ctx.t("trigger_btn_delete"), callbackData);
+    if (callbackData) keyboard.text(ctx.t("triggers_btn_delete", { action: entry.action }), callbackData);
+    keyboard.text(ctx.t("panel_close"), "panel:close");
 
     try {
-      if (entry.kind === "animation") {
-        // eslint-disable-next-line no-await-in-loop -- Keep the media list in a stable order.
-        await ctx.replyWithAnimation(entry.fileId, { reply_markup: keyboard });
-      } else {
-        // eslint-disable-next-line no-await-in-loop -- Keep the media list in a stable order.
-        await ctx.replyWithSticker(entry.fileId, { reply_markup: keyboard });
-      }
+      const sent =
+        entry.kind === "animation"
+          ? await ctx.replyWithAnimation(entry.fileId, { reply_markup: keyboard })
+          : await ctx.replyWithSticker(entry.fileId, { reply_markup: keyboard });
+      previewMessageIds.push(sent.message_id);
     } catch (error) {
       if (!(error instanceof GrammyError)) throw error;
 
-      // eslint-disable-next-line no-await-in-loop -- Keep fallback entries beside their media.
-      await ctx.richReply(ctx.t("trigger_stale_media", { media: mediaLabel(ctx, entry.kind) }), {
+      const sent = await ctx.richReply(ctx.t("triggers_no_preview", { media: entry.kind }), {
         reply_markup: keyboard,
       });
+      previewMessageIds.push(sent.message_id);
     }
   }
 
-  return await ctx.reply(ctx.t("cmd_triggers_summary", { count: entries.length }), {
-    reply_markup: new InlineKeyboard().text(ctx.t("trigger_btn_clear"), "trigger:clear"),
+  const summary = await ctx.reply(ctx.t("cmd_triggers_summary", { count: entries.length }), {
+    reply_markup: new InlineKeyboard()
+      .text(ctx.t("triggers_btn_clear"), "trigger:clear")
+      .row()
+      .text(ctx.t("panel_close"), "panel:close"),
   });
+  previewMessageIds.push(summary.message_id);
+
+  await writeTrackedPreviewIds(ctx, trackingKey, previewMessageIds);
+  return summary;
 }
 
 async function deleteListedTrigger(ctx: BotContext) {
@@ -372,18 +446,14 @@ async function deleteListedTrigger(ctx: BotContext) {
   await saveBuckets(ctx, {
     [bucket]: updated.length ? updated : null,
   });
+  await removeTrackedPreviewMessage(
+    ctx,
+    triggerListKey(callback.message.chat.id),
+    callback.message.message_id,
+  );
   await ctx.answerCallbackQuery({ text: ctx.t("trigger_removed") });
 
-  try {
-    await ctx.api.deleteMessage(callback.message.chat.id, callback.message.message_id);
-  } catch {
-    await ctx.editRichMessage({
-      chatId: callback.message.chat.id,
-      messageId: callback.message.message_id,
-      text: ctx.t("trigger_removed"),
-      options: { reply_markup: new InlineKeyboard() },
-    });
-  }
+  await removePreviewMessage(ctx, callback.message.chat.id, callback.message.message_id);
 
   return undefined;
 }
@@ -394,13 +464,15 @@ async function askClear(ctx: BotContext) {
 
   await ctx.answerCallbackQuery();
   const keyboard = new InlineKeyboard()
-    .text(ctx.t("trigger_clear_yes"), "trigger:clear:yes")
-    .text(ctx.t("trigger_clear_no"), "trigger:clear:no");
+    .text(ctx.t("triggers_clear_yes"), "trigger:clear:yes")
+    .text(ctx.t("triggers_clear_no"), "trigger:clear:no")
+    .row()
+    .text(ctx.t("panel_close"), "panel:close");
 
   return await ctx.editRichMessage({
     chatId: callback.message.chat.id,
     messageId: callback.message.message_id,
-    text: ctx.t("trigger_clear_confirm"),
+    text: ctx.t("triggers_clear_confirm"),
     options: { reply_markup: keyboard },
   });
 }
@@ -409,21 +481,32 @@ async function clearTriggers(ctx: BotContext) {
   const callback = ctx.callbackQuery;
   if (!callback?.message || !ctx.chat || !(await ownerOrGroupAdmin(ctx))) return;
 
+  const chatId = callback.message.chat.id;
+  const summaryMessageId = callback.message.message_id;
+  const trackingKey = triggerListKey(chatId);
+  const trackedMessageIds = await readTrackedPreviewIds(ctx, trackingKey);
+
   await saveBuckets(ctx, {
     gifIds: null,
     stickerIds: null,
     unclownGifIds: null,
     unclownStickerIds: null,
   });
+  await Promise.all(
+    trackedMessageIds
+      .filter((messageId) => messageId !== summaryMessageId)
+      .map((messageId) => removePreviewMessage(ctx, chatId, messageId)),
+  );
+  await writeTrackedPreviewIds(ctx, trackingKey, []);
   await ctx.answerCallbackQuery({
-    text: ctx.t("trigger_cleared"),
+    text: ctx.t("triggers_cleared"),
   });
 
   return await ctx.editRichMessage({
     chatId: callback.message.chat.id,
     messageId: callback.message.message_id,
-    text: ctx.t("trigger_cleared"),
-    options: { reply_markup: new InlineKeyboard() },
+    text: ctx.t("triggers_cleared"),
+    options: { reply_markup: new InlineKeyboard().text(ctx.t("panel_close"), "panel:close") },
   });
 }
 
@@ -435,8 +518,8 @@ async function cancelClear(ctx: BotContext) {
   return await ctx.editRichMessage({
     chatId: callback.message.chat.id,
     messageId: callback.message.message_id,
-    text: ctx.t("trigger_clear_cancelled"),
-    options: { reply_markup: new InlineKeyboard() },
+    text: ctx.t("triggers_clear_cancelled"),
+    options: { reply_markup: new InlineKeyboard().text(ctx.t("panel_close"), "panel:close") },
   });
 }
 

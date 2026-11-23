@@ -20,6 +20,8 @@ function statsKeyboard(ctx: BotContext, page: number, pages: number): InlineKeyb
   const keyboard = new InlineKeyboard();
   if (page > 0) keyboard.text(ctx.t("cmd_stats_previous"), `stats:page:${page - 1}`);
   if (page + 1 < pages) keyboard.text(ctx.t("cmd_stats_next"), `stats:page:${page + 1}`);
+  if (page > 0 || page + 1 < pages) keyboard.row();
+  keyboard.text(ctx.t("panel_close"), "panel:close");
   return keyboard;
 }
 
@@ -70,7 +72,7 @@ async function renderStats(
         chatId: message.chat.id,
         messageId: message.message_id,
         text,
-        options: { reply_markup: new InlineKeyboard() },
+        options: { reply_markup: new InlineKeyboard().text(ctx.t("panel_close"), "panel:close") },
       });
     }
 

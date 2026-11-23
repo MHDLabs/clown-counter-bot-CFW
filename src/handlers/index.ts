@@ -4,6 +4,7 @@ import type { BotCommandScope } from "grammy/types";
 import type { BotContext } from "@/lib/bot";
 
 import { groupMembershipHandler } from "./admin/group-membership";
+import { panelCloseHandler } from "./panel";
 import { resetStatsCallbacks, resetStatsHandler } from "./admin/resetstats";
 import { setCooldownHandler } from "./admin/setcooldown";
 import { adminStatusCallbacks, adminStatusHandler, adminStatusHyphenAlias } from "./admin/status";
@@ -67,6 +68,7 @@ export const handlers: Handler[] = [
   adminStatusHandler,
   adminStatusHyphenAlias,
   ...adminStatusCallbacks,
+  panelCloseHandler,
 
   // Groups
   ...clownHandlers,

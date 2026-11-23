@@ -2,7 +2,7 @@ import { InlineKeyboard } from "grammy";
 
 import type { CommandHandler } from "@/handlers";
 
-import { CREATOR, getOwnerTelegramId } from "@/lib/creator";
+const UPSTREAM_REPOSITORY = "https://github.com/haashemi/clown-counter-bot";
 
 export const sourceHandler: CommandHandler = {
   kind: "command",
@@ -11,16 +11,12 @@ export const sourceHandler: CommandHandler = {
   scopes: [{ type: "all_private_chats" }],
   handler: async (ctx) => {
     const keyboard = new InlineKeyboard()
-      .url(ctx.t("cmd_source_repository"), CREATOR.repositoryUrl)
-      .url(ctx.t("cmd_creator_channel"), CREATOR.channelUrl);
-    const credits = ctx.t("help_public_credits", {
-      creator: CREATOR.username,
-      owner_id: getOwnerTelegramId(ctx.botAdminIds),
-      channel: CREATOR.channel,
-      repository: CREATOR.repositoryUrl,
-    });
+      .url(ctx.t("cmd_source_repository"), UPSTREAM_REPOSITORY)
+      .url(ctx.t("cmd_creator_channel"), "https://t.me/MHDLabs")
+      .row()
+      .text(ctx.t("panel_close"), "panel:close");
 
-    return await ctx.richReply(`${ctx.t("cmd_source")}\n\n${credits}`, {
+    return await ctx.richReply(ctx.t("cmd_source"), {
       reply_markup: keyboard,
       ...(ctx.msg
         ? {

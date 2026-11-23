@@ -10,7 +10,11 @@ const faData = "language:fa";
 const enData = "language:en";
 
 function languageKeyboard(ctx: BotContext) {
-  return new InlineKeyboard().text(ctx.t("cmd_language_persian"), faData).text(ctx.t("cmd_language_english"), enData);
+  return new InlineKeyboard()
+    .text(ctx.t("cmd_language_persian"), faData)
+    .text(ctx.t("cmd_language_english"), enData)
+    .row()
+    .text(ctx.t("panel_close"), "panel:close");
 }
 
 async function showLanguagePanel(ctx: BotContext) {
