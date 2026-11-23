@@ -27,15 +27,6 @@ jobs:
           node-version: 22
       - run: corepack enable
       - run: pnpm install --frozen-lockfile
-      - name: Emit canonical Prettier output for remaining files
-        shell: bash
-        run: |
-          for file in src/handlers/admin/triggers.ts src/handlers/group/migrate.ts; do
-            echo "PRETTIER_BASE64_BEGIN:$file"
-            pnpm exec prettier "$file" | base64 -w0
-            echo
-            echo "PRETTIER_BASE64_END:$file"
-          done
       - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm typecheck

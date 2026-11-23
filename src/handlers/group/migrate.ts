@@ -147,11 +147,7 @@ async function loadMigrationState(ctx: BotContext, migration: GroupMigration): P
   return { source, destination, sourceAllowlist, sourceAttempts, destinationAttempts };
 }
 
-function migrationStatements(
-  ctx: BotContext,
-  migration: GroupMigration,
-  state: MigrationState,
-) {
+function migrationStatements(ctx: BotContext, migration: GroupMigration, state: MigrationState) {
   const { source, destination, sourceAllowlist, sourceAttempts, destinationAttempts } = state;
   const { sourceId, destinationId, destinationName } = migration;
   if (!source) return null;

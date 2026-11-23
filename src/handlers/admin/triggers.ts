@@ -119,11 +119,7 @@ function updatedMediaLists(
   return { clownIds: remove(clownIds), unclownIds: remove(unclownIds) };
 }
 
-function mediaLimitReached(
-  action: Action | null,
-  alreadyExists: boolean,
-  targetIds: string[],
-): boolean {
+function mediaLimitReached(action: Action | null, alreadyExists: boolean, targetIds: string[]): boolean {
   return action !== null && !alreadyExists && targetIds.length >= MAX_PER_KIND;
 }
 
@@ -317,10 +313,9 @@ async function listTriggers(ctx: BotContext) {
       if (!(error instanceof GrammyError)) throw error;
 
       // eslint-disable-next-line no-await-in-loop -- Keep fallback entries beside their media.
-      await ctx.richReply(
-        ctx.t("trigger_stale_media", { media: mediaLabel(ctx, entry.kind) }),
-        { reply_markup: keyboard },
-      );
+      await ctx.richReply(ctx.t("trigger_stale_media", { media: mediaLabel(ctx, entry.kind) }), {
+        reply_markup: keyboard,
+      });
     }
   }
 
@@ -420,10 +415,7 @@ async function cancelClear(ctx: BotContext) {
   });
 }
 
-const GROUP_SCOPES = [
-  { type: "all_group_chats" as const },
-  { type: "all_chat_administrators" as const },
-];
+const GROUP_SCOPES = [{ type: "all_group_chats" as const }, { type: "all_chat_administrators" as const }];
 
 export const triggerHandlers: CommandHandler[] = [
   {
