@@ -233,7 +233,7 @@ async function closeTriggerPrompt(ctx: BotContext, message: CallbackMessageRefer
     await ctx.api.deleteMessage(message.chat.id, message.message_id);
   } catch {
     try {
-      await ctx.api.editMessageReplyMarkup(message.chat.id, message.message_id, new InlineKeyboard());
+      await ctx.api.editMessageReplyMarkup(message.chat.id, message.message_id, { reply_markup: new InlineKeyboard() });
     } catch {
       // The previous selector may already be gone.
     }
@@ -355,7 +355,7 @@ async function removePreviewMessage(ctx: BotContext, chatId: number, messageId: 
     await ctx.api.deleteMessage(chatId, messageId);
   } catch {
     try {
-      await ctx.api.editMessageReplyMarkup(chatId, messageId, new InlineKeyboard());
+      await ctx.api.editMessageReplyMarkup(chatId, messageId, { reply_markup: new InlineKeyboard() });
     } catch {
       // A stale preview does not prevent the remaining messages from being cleaned up.
     }
@@ -370,13 +370,13 @@ async function cleanTrackedTriggerMessages(ctx: BotContext, key: string): Promis
   await writeTrackedPreviewIds(ctx, key, []);
 }
 
-async function removeTrackedPreviewMessage(
-  ctx: BotContext,
-  key: string,
-  messageId: number,
-): Promise<void> {
+async function removeTrackedPreviewMessage(ctx: BotContext, key: string, messageId: number): Promise<void> {
   const ids = await readTrackedPreviewIds(ctx, key);
-  await writeTrackedPreviewIds(ctx, key, ids.filter((id) => id !== messageId));
+  await writeTrackedPreviewIds(
+    ctx,
+    key,
+    ids.filter((id) => id !== messageId),
+  );
 }
 
 async function sendTriggerPreview(
@@ -461,11 +461,7 @@ async function deleteListedTrigger(ctx: BotContext) {
   await saveBuckets(ctx, {
     [bucket]: updated.length ? updated : null,
   });
-  await removeTrackedPreviewMessage(
-    ctx,
-    triggerListKey(callback.message.chat.id),
-    callback.message.message_id,
-  );
+  await removeTrackedPreviewMessage(ctx, triggerListKey(callback.message.chat.id), callback.message.message_id);
   await ctx.answerCallbackQuery({ text: ctx.t("trigger_removed") });
 
   await removePreviewMessage(ctx, callback.message.chat.id, callback.message.message_id);
