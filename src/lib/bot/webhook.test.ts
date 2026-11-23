@@ -195,9 +195,7 @@ describe("grammY Cloudflare webhook", () => {
 
     const sendRichMessage = calls.find((call) => call.method === "sendRichMessage");
 
-    expect(JSON.stringify(sendRichMessage?.payload["rich_message"])).toContain(
-      "github.com/haashemi/clown-counter-bot",
-    );
+    expect(JSON.stringify(sendRichMessage?.payload["rich_message"])).toContain("github.com/haashemi/clown-counter-bot");
   });
 
   it("stays silent when group /clown has no replied target, matching upstream", async () => {
