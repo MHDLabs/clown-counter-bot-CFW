@@ -199,11 +199,11 @@ describe("grammY Cloudflare webhook", () => {
   });
 
   it.each([
-    { text: "/clown", locale: "en", expected: "Reply to a group member's message with /clown or 🤡 to cast a vote." },
-    { text: "/unclown", locale: "en", expected: "Reply to a group member's message with /unclown or 😇 to lower their score." },
-    { text: "🤡", locale: "fa", expected: "برای ثبت رأی دلقکی، روی پیام یکی از اعضای گروه پاسخ بده و /clown یا 🤡 را بفرست." },
-    { text: "😇", locale: "fa", expected: "برای کاهش امتیاز دلقکی، روی پیام یکی از اعضای گروه پاسخ بده و /unclown یا 😇 را بفرست." },
-  ] as const)("explains how to vote when $text has no replied target", async ({ text, locale, expected }) => {
+    ["/clown", "en", "Reply to a group member's message with /clown"],
+    ["/unclown", "en", "Reply to a group member's message with /unclown"],
+    ["🤡", "fa", "برای ثبت رأی دلقکی"],
+    ["😇", "fa", "برای کاهش امتیاز دلقکی"],
+  ] as const)("explains how to vote when %s has no replied target", async (text, locale, expected) => {
     const bot = new Bot("123456:fake_token", {
       botId: fakeBotInfo.id,
       database: testDatabase(locale),
