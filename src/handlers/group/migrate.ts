@@ -32,24 +32,37 @@ export function mergeGroupSettings(
   destination?: GroupSnapshot,
   destinationName?: string,
 ): GroupSnapshot {
-  const resetTimes = [source.resetAt, destination?.resetAt].filter((value): value is Date => value !== null && value !== undefined);
+  const resetTimes = [source.resetAt, destination?.resetAt].filter(
+    (value): value is Date => value !== null && value !== undefined,
+  );
 
   return {
     name: destinationName ?? destination?.name ?? source.name,
     botMemberStatus:
-      source.botMemberStatus === "active" || destination?.botMemberStatus === "active"
+      source.botMemberStatus === "active" ||
+      destination?.botMemberStatus === "active"
         ? "active"
         : (destination?.botMemberStatus ?? source.botMemberStatus),
     gifIds: mergeIds(source.gifIds, destination?.gifIds ?? null),
     stickerIds: mergeIds(source.stickerIds, destination?.stickerIds ?? null),
-    unclownGifIds: mergeIds(source.unclownGifIds, destination?.unclownGifIds ?? null),
-    unclownStickerIds: mergeIds(source.unclownStickerIds, destination?.unclownStickerIds ?? null),
-    resetAt: resetTimes.length ? new Date(Math.max(...resetTimes.map((value) => value.getTime()))) : null,
+    unclownGifIds: mergeIds(
+      source.unclownGifIds,
+      destination?.unclownGifIds ?? null,
+    ),
+    unclownStickerIds: mergeIds(
+      source.unclownStickerIds,
+      destination?.unclownStickerIds ?? null,
+    ),
+    resetAt: resetTimes.length
+      ? new Date(Math.max(...resetTimes.map((value) => value.getTime())))
+      : null,
     cooldown: destination?.cooldown ?? source.cooldown,
   };
 }
 
-export function mergeCooldownAttempts(...groups: CooldownAttempt[][]): CooldownAttempt[] {
+export function mergeCooldownAttempts(
+  ...groups: CooldownAttempt[][]
+): CooldownAttempt[] {
   const merged = new Map<string, CooldownAttempt>();
 
   for (const attempt of groups.flat()) {
@@ -68,18 +81,42 @@ export function mergeCooldownAttempts(...groups: CooldownAttempt[][]): CooldownA
 async function migrateGroup(ctx: BotContext) {
   const message = ctx.msg;
   const chat = ctx.chat;
-  if (!message || !chat || (chat.type !== "group" && chat.type !== "supergroup")) return;
+  if (
+    !message ||
+    !chat ||
+    (chat.type !== "group" && chat.type !== "supergroup")
+  ) {
+    return;
+  }
 
   const sourceId =
-    message.migrate_to_chat_id !== undefined ? String(chat.id) : message.migrate_from_chat_id !== undefined ? String(message.migrate_from_chat_id) : null;
+    message.migrate_to_chat_id !== undefined
+      ? String(chat.id)
+      : message.migrate_from_chat_id !== undefined
+        ? String(message.migrate_from_chat_id)
+        : null;
   const destinationId =
-    message.migrate_to_chat_id !== undefined ? String(message.migrate_to_chat_id) : message.migrate_from_chat_id !== undefined ? String(chat.id) : null;
+    message.migrate_to_chat_id !== undefined
+      ? String(message.migrate_to_chat_id)
+      : message.migrate_from_chat_id !== undefined
+        ? String(chat.id)
+        : null;
 
   if (!sourceId || !destinationId || sourceId === destinationId) return;
 
-  const [source, destination, sourceAllowlist, sourceAttempts, destinationAttempts] = await Promise.all([
-    ctx.db.query.groups.findFirst({ where: (fields, operators) => operators.eq(fields.id, sourceId) }),
-    ctx.db.query.groups.findFirst({ where: (fields, operators) => operators.eq(fields.id, destinationId) }),
+  const [
+    source,
+    destination,
+    sourceAllowlist,
+    sourceAttempts,
+    destinationAttempts,
+  ] = await Promise.all([
+    ctx.db.query.groups.findFirst({
+      where: (fields, operators) => operators.eq(fields.id, sourceId),
+    }),
+    ctx.db.query.groups.findFirst({
+      where: (fields, operators) => operators.eq(fields.id, destinationId),
+    }),
     ctx.db
       .select({ groupId: schema.allowedGroups.groupId })
       .from(schema.allowedGroups)
@@ -106,9 +143,17 @@ async function migrateGroup(ctx: BotContext) {
   // No source row means this update was already processed or the group was never recorded.
   if (!source) return;
 
-  const destinationName = String(chat.id) === destinationId ? (chat.title ?? undefined) : undefined;
-  const merged = mergeGroupSettings(source, destination ?? undefined, destinationName);
-  const attempts = mergeCooldownAttempts(sourceAttempts, destinationAttempts);
+  const destinationName =
+    String(chat.id) === destinationId ? (chat.title ?? undefined) : undefined;
+  const merged = mergeGroupSettings(
+    source,
+    destination ?? undefined,
+    destinationName,
+  );
+  const attempts = mergeCooldownAttempts(
+    sourceAttempts,
+    destinationAttempts,
+  );
 
   const statements = [
     ctx.db
@@ -124,17 +169,30 @@ async function migrateGroup(ctx: BotContext) {
       .where(eq(schema.clownVotes.groupId, sourceId)),
     ...(sourceAllowlist.length
       ? [
-          ctx.db.insert(schema.allowedGroups).values({ groupId: destinationId }).onConflictDoNothing(),
-          ctx.db.delete(schema.allowedGroups).where(eq(schema.allowedGroups.groupId, sourceId)),
+          ctx.db
+            .insert(schema.allowedGroups)
+            .values({ groupId: destinationId })
+            .onConflictDoNothing(),
+          ctx.db
+            .delete(schema.allowedGroups)
+            .where(eq(schema.allowedGroups.groupId, sourceId)),
         ]
       : []),
     ...(attempts.length
       ? [
           ctx.db
             .insert(schema.clownCooldownAttempts)
-            .values(attempts.map((attempt) => ({ ...attempt, groupId: destinationId })))
+            .values(
+              attempts.map((attempt) => ({
+                ...attempt,
+                groupId: destinationId,
+              })),
+            )
             .onConflictDoUpdate({
-              target: [schema.clownCooldownAttempts.groupId, schema.clownCooldownAttempts.voterId],
+              target: [
+                schema.clownCooldownAttempts.groupId,
+                schema.clownCooldownAttempts.voterId,
+              ],
               set: {
                 attempts: sql`max(${schema.clownCooldownAttempts.attempts}, excluded.attempts)`,
                 expiresAt: sql`max(${schema.clownCooldownAttempts.expiresAt}, excluded.expires_at)`,
@@ -142,7 +200,9 @@ async function migrateGroup(ctx: BotContext) {
             }),
         ]
       : []),
-    ctx.db.delete(schema.clownCooldownAttempts).where(eq(schema.clownCooldownAttempts.groupId, sourceId)),
+    ctx.db
+      .delete(schema.clownCooldownAttempts)
+      .where(eq(schema.clownCooldownAttempts.groupId, sourceId)),
     ctx.db.delete(schema.groups).where(eq(schema.groups.id, sourceId)),
   ];
 
@@ -155,7 +215,12 @@ export const migrateGroupHandler: MessageHandler = {
   kind: "message",
   inGroup: true,
   filter: async (ctx, next) => {
-    if (ctx.msg?.migrate_to_chat_id === undefined && ctx.msg?.migrate_from_chat_id === undefined) return;
+    if (
+      ctx.msg?.migrate_to_chat_id === undefined &&
+      ctx.msg?.migrate_from_chat_id === undefined
+    ) {
+      return;
+    }
     await next();
   },
   handler: migrateGroup,
