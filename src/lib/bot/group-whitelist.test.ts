@@ -34,7 +34,8 @@ function createContext(options: {
           if (options.fail) throw new Error("D1 unavailable");
 
           if (table === schema.botSettings) {
-            const read = settingsReads++ % 3;
+            const read = settingsReads % 3;
+            settingsReads += 1;
             if (read === 0) return options.enabled ? [{ value: "enabled" }] : [{ value: "disabled" }];
             if (read === 1) return [{ value: "100" }];
             const value = noticeValues.get("group_whitelist_notice:-100123");
@@ -114,7 +115,11 @@ describe("group allowlist middleware", () => {
     await groupWhitelistMiddleware(ctx, next);
     await groupWhitelistMiddleware(ctx, next);
 
-    expect(sendMessage).toHaveBeenCalledOnce();
+    expect(sendMessage).toHaveBeenCalledExactlyOnceWith(
+      -100123,
+      "whitelist_group_disabled",
+      expect.objectContaining({ reply_markup: expect.any(Object) }),
+    );
     expect(next).not.toHaveBeenCalled();
   });
 

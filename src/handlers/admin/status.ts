@@ -549,9 +549,11 @@ async function whitelistCallback(ctx: BotContext, data: string, message: Message
   }
 
   const epoch = await setWhitelistEnabled(ctx, !enabled);
+
   if (epoch !== null) {
     await notifyUnallowlistedGroups(ctx, epoch);
   }
+
   await renderHome(ctx, message);
   return true;
 }

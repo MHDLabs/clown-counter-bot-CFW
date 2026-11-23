@@ -1,9 +1,8 @@
 import { and, eq } from "drizzle-orm";
-import { InlineKeyboard } from "grammy";
 import type { MiddlewareFn } from "grammy";
+import { InlineKeyboard } from "grammy";
 
 import { schema } from "@/db";
-
 import { CREATOR, getOwnerTelegramId } from "@/lib/creator";
 
 import type { BotContext } from ".";
@@ -105,6 +104,18 @@ async function claimGroupNotice(ctx: BotContext, groupId: string, epoch: number)
   return updated !== undefined;
 }
 
+async function releaseGroupNoticeClaim(ctx: BotContext, groupId: string, epoch: number): Promise<void> {
+  const key = `${GROUP_NOTICE_KEY_PREFIX}${groupId}`;
+
+  try {
+    await ctx.db
+      .delete(schema.botSettings)
+      .where(and(eq(schema.botSettings.key, key), eq(schema.botSettings.value, String(epoch))));
+  } catch {
+    console.warn("Could not release a failed group whitelist notice claim.");
+  }
+}
+
 /**
  * Sends at most one notice per group and whitelist generation.
  * The database claim happens before the Telegram request to avoid duplicate notices
@@ -115,11 +126,11 @@ export async function sendGroupWhitelistDisabledNotice(
   groupId: string,
   epoch?: number,
 ): Promise<boolean> {
-  const currentEpoch = epoch ?? (await getGroupWhitelistEpoch(ctx));
-  if (!(await claimGroupNotice(ctx, groupId, currentEpoch))) return false;
-
   const chatId = Number(groupId);
   if (!Number.isSafeInteger(chatId)) return false;
+
+  const currentEpoch = epoch ?? (await getGroupWhitelistEpoch(ctx));
+  if (!(await claimGroupNotice(ctx, groupId, currentEpoch))) return false;
 
   const keyboard = new InlineKeyboard()
     .url(ctx.t("whitelist_button_source"), CREATOR.repositoryUrl)
@@ -136,11 +147,52 @@ export async function sendGroupWhitelistDisabledNotice(
       }),
       { reply_markup: keyboard },
     );
+
     return true;
   } catch {
+    await releaseGroupNoticeClaim(ctx, groupId, currentEpoch);
     console.warn("Could not deliver a group whitelist notice.");
     return false;
   }
+}
+
+function isActiveMembership(member: { status: string; is_member?: boolean }): boolean {
+  return (
+    member.status === "creator" ||
+    member.status === "administrator" ||
+    member.status === "member" ||
+    (member.status === "restricted" && Boolean(member.is_member))
+  );
+}
+
+async function isKnownGroupActive(
+  ctx: BotContext,
+  group: { id: string; botMemberStatus: "active" | "kicked" | "left" | null },
+): Promise<boolean> {
+  if (group.botMemberStatus === "active") return true;
+  if (group.botMemberStatus === "left" || group.botMemberStatus === "kicked") return false;
+
+  try {
+    const member = await ctx.api.getChatMember(group.id, ctx.meId);
+    const active = isActiveMembership(member);
+    const botMemberStatus = active ? "active" : member.status === "kicked" ? "kicked" : "left";
+
+    await ctx.db.update(schema.groups).set({ botMemberStatus }).where(eq(schema.groups.id, group.id));
+
+    return active;
+  } catch {
+    return false;
+  }
+}
+
+async function notifyGroupIfActive(
+  ctx: BotContext,
+  group: { id: string; botMemberStatus: "active" | "kicked" | "left" | null },
+  epoch: number,
+): Promise<boolean> {
+  if (!(await isKnownGroupActive(ctx, group))) return false;
+
+  return await sendGroupWhitelistDisabledNotice(ctx, group.id, epoch);
 }
 
 /** Notifies known active, non-allowlisted groups after whitelist mode is enabled. */
@@ -151,72 +203,56 @@ export async function notifyUnallowlistedGroups(ctx: BotContext, epoch: number):
   ]);
   const allowlistedIds = new Set(allowlisted.map((entry) => entry.groupId));
   const targets = groups.filter(
-    (group) =>
-      !allowlistedIds.has(group.id) && group.botMemberStatus !== "left" && group.botMemberStatus !== "kicked",
+    (group) => !allowlistedIds.has(group.id) && group.botMemberStatus !== "left" && group.botMemberStatus !== "kicked",
   );
-  let notified = 0;
+  const batches = Array.from({ length: Math.ceil(targets.length / 5) }, (_, index) =>
+    targets.slice(index * 5, index * 5 + 5),
+  );
+  const results = await Promise.all(
+    batches.map((batch) => Promise.all(batch.map((group) => notifyGroupIfActive(ctx, group, epoch)))),
+  );
 
-  // Also verify legacy rows whose membership predates my_chat_member tracking.
-  // Telegram does not expose a list of all chats, so only registered chat IDs can be checked.
-  for (let index = 0; index < targets.length; index += 5) {
-    await Promise.all(
-      targets.slice(index, index + 5).map(async (group) => {
-        let active = group.botMemberStatus === "active";
+  return results.flat().filter(Boolean).length;
+}
 
-        if (!active) {
-          try {
-            const member = await ctx.api.getChatMember(group.id, ctx.meId);
-            active =
-              member.status === "creator" ||
-              member.status === "administrator" ||
-              member.status === "member" ||
-              (member.status === "restricted" && member.is_member);
+function isGroupChat(ctx: BotContext): boolean {
+  return ctx.chat?.type === "group" || ctx.chat?.type === "supergroup";
+}
 
-            await ctx.db
-              .update(schema.groups)
-              .set({ botMemberStatus: active ? "active" : member.status === "kicked" ? "kicked" : "left" })
-              .where(eq(schema.groups.id, group.id));
-          } catch {
-            return;
-          }
-        }
+function isGroupLifecycleUpdate(ctx: BotContext): boolean {
+  return (
+    "my_chat_member" in ctx.update ||
+    ctx.msg?.migrate_to_chat_id !== undefined ||
+    ctx.msg?.migrate_from_chat_id !== undefined
+  );
+}
 
-        if (active && (await sendGroupWhitelistDisabledNotice(ctx, group.id, epoch))) notified += 1;
-      }),
-    );
-  }
+async function shouldProcessGroupUpdate(ctx: BotContext): Promise<boolean> {
+  if (!(await isGroupWhitelistEnabled(ctx))) return true;
 
-  return notified;
+  const groupId = String(ctx.chat?.id);
+  if (await isGroupAllowlisted(ctx, groupId)) return true;
+
+  // Receiving a group update confirms that the bot is still a member, including for
+  // legacy groups that predate membership tracking.
+  await ctx.db
+    .insert(schema.groups)
+    .values({ id: groupId, name: ctx.chat?.title ?? null, botMemberStatus: "active" })
+    .onConflictDoUpdate({
+      target: schema.groups.id,
+      set: { name: ctx.chat?.title ?? null, botMemberStatus: "active" },
+    });
+
+  await sendGroupWhitelistDisabledNotice(ctx, groupId);
+
+  return false;
 }
 
 export const groupWhitelistMiddleware: MiddlewareFn<BotContext> = async (ctx, next) => {
-  if (ctx.chat?.type !== "group" && ctx.chat?.type !== "supergroup") {
-    return await next();
-  }
-
-  // Keep lifecycle updates flowing so membership and group-ID migrations can be recorded.
-  const isGroupMigration = ctx.msg?.migrate_to_chat_id !== undefined || ctx.msg?.migrate_from_chat_id !== undefined;
-  if ("my_chat_member" in ctx.update || isGroupMigration) {
-    return await next();
-  }
+  if (!isGroupChat(ctx) || isGroupLifecycleUpdate(ctx)) return await next();
 
   try {
-    if (!(await isGroupWhitelistEnabled(ctx))) return await next();
-
-    const groupId = String(ctx.chat.id);
-    if (await isGroupAllowlisted(ctx, groupId)) return await next();
-
-    // Receiving a group update confirms that the bot is still a member, including for
-    // legacy groups that predate membership tracking.
-    await ctx.db
-      .insert(schema.groups)
-      .values({ id: groupId, name: ctx.chat.title ?? null, botMemberStatus: "active" })
-      .onConflictDoUpdate({
-        target: schema.groups.id,
-        set: { name: ctx.chat.title ?? null, botMemberStatus: "active" },
-      });
-
-    await sendGroupWhitelistDisabledNotice(ctx, groupId);
+    if (await shouldProcessGroupUpdate(ctx)) return await next();
   } catch {
     // Fail closed and avoid leaking configuration or producing retrying Telegram webhook errors.
     console.warn("Group whitelist check failed; ignored group update.");

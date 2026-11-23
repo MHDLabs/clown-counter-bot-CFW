@@ -20,6 +20,7 @@ async function notifyIfNotAllowlisted(ctx: BotContext, groupId: string): Promise
   try {
     if (!(await isGroupWhitelistEnabled(ctx))) return;
     if (await isGroupAllowlisted(ctx, groupId)) return;
+
     await sendGroupWhitelistDisabledNotice(ctx, groupId);
   } catch {
     console.warn("Could not check whitelist after a group membership update.");
@@ -37,13 +38,10 @@ export const groupMembershipHandler: UpdateHandler = {
     const botMemberStatus = membershipStatus(update.new_chat_member);
     const groupId = String(update.chat.id);
 
-    await ctx.db
-      .insert(schema.groups)
-      .values({ id: groupId, name, botMemberStatus })
-      .onConflictDoUpdate({
-        target: schema.groups.id,
-        set: { name, botMemberStatus },
-      });
+    await ctx.db.insert(schema.groups).values({ id: groupId, name, botMemberStatus }).onConflictDoUpdate({
+      target: schema.groups.id,
+      set: { name, botMemberStatus },
+    });
 
     // If the bot is added while whitelist mode is active, notify the group once.
     if (botMemberStatus === "active") {
