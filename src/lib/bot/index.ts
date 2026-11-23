@@ -12,6 +12,7 @@ import type { ReplyToFlavor } from "./plugins/reply-to";
 import { errorHandler } from "./error-handler";
 import { groupWhitelistMiddleware } from "./group-whitelist";
 import { autoRetryPlugin } from "./plugins/auto-retry";
+import { updateDeduplicationMiddleware } from "./plugins/update-deduplication";
 import { applyHandlers } from "./registration";
 
 export type ClownCall = "clown" | "unclown";
@@ -72,6 +73,7 @@ export class Bot extends GrammyBot<BotContext> {
       ctx.botAdminIds = botAdminIds;
       await next();
     });
+    this.use(updateDeduplicationMiddleware());
     // Load locale/context helpers before the whitelist gate so public notices
     // use each chat's selected language.
     plugins.forEach((plugin) => this.use(plugin));

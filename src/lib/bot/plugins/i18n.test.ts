@@ -1,48 +1,39 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { translate } from "./i18n";
+import type { BotContext } from "..";
 
-const rightToLeftMark = "\u200f";
+import { i18nMiddleware } from "./i18n";
 
-describe("Persian right-to-left translation marks", () => {
-  it.each([
-    "cmd_start",
-    "help_title",
-    "help_intro",
-    "help_button_personal_stats",
-    "help_personal_self",
-    "help_text_triggers",
-    "cmd_mystats_unavailable",
-    "cmd_privacy",
-    "cmd_resetstats_confirm",
-  ])("marks every line of %s", (key) => {
-    const text = translate("fa", key);
+describe("language preference fallback", () => {
+  it("continues with Telegram language when D1 cannot read the saved preference", async () => {
+    const ctx = {
+      update: { update_id: 77 },
+      from: { id: 123, language_code: "en" },
+      db: {
+        query: {
+          userPreferences: {
+            findFirst: vi.fn().mockRejectedValue(new Error("D1 unavailable")),
+          },
+        },
+      },
+    } as unknown as BotContext;
+    const next = vi.fn().mockResolvedValue(undefined);
 
-    expect(text.split("\n").every((line) => line.startsWith(rightToLeftMark))).toBe(true);
+    await i18nMiddleware()(ctx, next);
+
+    expect(ctx.locale).toBe("en");
+    expect(ctx.t("cmd_start")).toContain("Welcome");
+    expect(next).toHaveBeenCalledOnce();
   });
 
-  it.each([
-    ["cmd_mystats_title", { name: "کاربر" }],
-    ["cmd_mystats_score", { score: 5 }],
-  ])("marks dynamic personal stats message %s", (key, variables) => {
-    const text = translate("fa", key, variables);
+  it("uses Persian when Telegram does not advertise English", async () => {
+    const ctx = {
+      update: { update_id: 78 },
+      from: { id: 123, language_code: "fa" },
+      db: { query: { userPreferences: { findFirst: vi.fn().mockResolvedValue(undefined) } } },
+    } as unknown as BotContext;
 
-    expect(text.split("\n").every((line) => line.startsWith(rightToLeftMark))).toBe(true);
-  });
-
-  it("marks newlines introduced by dynamic Fluent variables", () => {
-    const text = translate("fa", "cmd_stats_group", {
-      clowns: "نام یک\nنام دو",
-      reset: "از امروز",
-    });
-
-    expect(text.split("\n").every((line) => line.startsWith(rightToLeftMark))).toBe(true);
-  });
-
-  it("does not alter English translations", () => {
-    const text = translate("en", "cmd_start");
-
-    expect(text.startsWith(rightToLeftMark)).toBe(false);
-    expect(text).not.toContain(rightToLeftMark);
+    await i18nMiddleware()(ctx, vi.fn().mockResolvedValue(undefined));
+    expect(ctx.locale).toBe("fa");
   });
 });

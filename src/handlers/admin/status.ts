@@ -212,7 +212,7 @@ function homeKeyboard(ctx: BotContext, enabled: boolean): InlineKeyboard {
     .row()
     .url(ctx.t("admin_button_creator_channel"), CREATOR.channelUrl)
     .row()
-    .text(ctx.t("panel_close"), "panel:close");
+    .text(ctx.t("panel_close"), "panel:close:owner");
 }
 
 async function renderHome(ctx: BotContext, message?: MessageRef, notice?: string) {
@@ -323,7 +323,7 @@ async function renderGroups(
   }
 
   addPager({ keyboard, ctx, page, pages, target: (next) => `admin:groups:${next}` });
-  keyboard.text(ctx.t("admin_button_home"), "admin:home").row().text(ctx.t("panel_close"), "panel:close");
+  keyboard.text(ctx.t("admin_button_home"), "admin:home").row().text(ctx.t("panel_close"), "panel:close:owner");
   return await sendOrEdit(ctx, { message, blocks, keyboard });
 }
 
@@ -385,7 +385,7 @@ function groupDetailKeyboard(
     .row()
     .text(ctx.t("admin_button_home"), "admin:home")
     .row()
-    .text(ctx.t("panel_close"), "panel:close");
+    .text(ctx.t("panel_close"), "panel:close:owner");
   return keyboard;
 }
 
@@ -412,7 +412,7 @@ async function renderGroup(
         .row()
         .text(ctx.t("admin_button_home"), "admin:home")
         .row()
-        .text(ctx.t("panel_close"), "panel:close"),
+        .text(ctx.t("panel_close"), "panel:close:owner"),
     });
   }
 
@@ -639,7 +639,7 @@ async function handleOwnerCallback(ctx: BotContext): Promise<void> {
         reply_markup: new InlineKeyboard()
           .text(ctx.t("admin_button_home"), "admin:home")
           .row()
-          .text(ctx.t("panel_close"), "panel:close"),
+          .text(ctx.t("panel_close"), "panel:close:owner"),
       },
     });
   }

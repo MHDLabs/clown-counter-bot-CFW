@@ -16,6 +16,7 @@
     "db:migrate:prod": "printf 'y\\n' | wrangler d1 migrations apply DB --remote",
     "db:validate": "wrangler d1 migrations list DB --local",
     "set:webhook": "node scripts/set-webhook.mjs",
+    "resolve:bot-username": "node scripts/resolve-bot-username.mjs",
     "test:d1": "node scripts/test-d1-concurrency.mjs"
   },
   "dependencies": {
@@ -44,6 +45,12 @@
       },
       "BOT_ADMIN_IDS": {
         "description": "Optional comma-separated Telegram numeric user IDs with access to the private bot-owner panel, group allowlist, and bot settings. Leave empty to require Telegram group-admin status for group settings."
+      },
+      "BOT_READ_ALL_GROUP_MESSAGES": {
+        "description": "Optional true/false setting applied during webhook setup. true disables Telegram Privacy Mode to receive ordinary group messages; false enables it; empty preserves the current Telegram setting."
+      },
+      "BOT_READ_ALL_GROUP_MESSAGES": {
+        "description": "Optional true/false setting applied through Telegram setMySettings. true disables Privacy Mode so the bot can receive ordinary group messages; false enables Privacy Mode; empty preserves the Telegram setting."
       }
     }
   }

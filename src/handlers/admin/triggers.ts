@@ -1,6 +1,6 @@
 import type { Message } from "grammy/types";
 
-import { eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { GrammyError, InlineKeyboard } from "grammy";
 
 import type { CallbackQueryHandler, CommandHandler } from "@/handlers";
@@ -13,6 +13,7 @@ import { getLegacyMediaId, getSendableMediaIds, matchesStoredMediaId } from "@/l
 import { saveGroup } from "@/lib/utils";
 
 const MAX_PER_KIND = 3;
+const MEDIA_LOCK_MS = 30_000;
 const BUCKETS = ["gifIds", "stickerIds", "unclownGifIds", "unclownStickerIds"] as const;
 
 type Bucket = (typeof BUCKETS)[number];
@@ -68,7 +69,7 @@ function promptKeyboard(ctx: BotContext, action: Action | null): InlineKeyboard 
   if (action !== "clown") keyboard.text(ctx.t("trigger_btn_clown"), "trigger:set:clown");
   if (action !== "unclown") keyboard.text(ctx.t("trigger_btn_unclown"), "trigger:set:unclown");
   if (action) keyboard.text(ctx.t("trigger_btn_remove"), "trigger:remove");
-  keyboard.row().text(ctx.t("panel_close"), "panel:close");
+  keyboard.row().text(ctx.t("panel_close"), "panel:close:admin");
   return keyboard;
 }
 
@@ -155,6 +156,47 @@ async function saveBuckets(ctx: BotContext, patch: GroupPatch) {
   });
 }
 
+async function withMediaWriteLock<T>(ctx: BotContext, operation: () => Promise<T>): Promise<T> {
+  if (!ctx.chat) throw new Error("A group chat is required to update custom media.");
+
+  const key = `trigger-lock:${ctx.chat.id}`;
+  const lockValue = `${Date.now() + MEDIA_LOCK_MS}:${crypto.randomUUID()}`;
+  let acquired = false;
+
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const now = Date.now();
+    const result = await ctx.db.run(sql`
+      INSERT INTO bot_settings (key, value) VALUES (${key}, ${lockValue})
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value
+      WHERE CAST(substr(bot_settings.value, 1, instr(bot_settings.value, ':') - 1) AS INTEGER) <= ${now}
+    `);
+    if (result.meta.changes > 0) {
+      acquired = true;
+      break;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 20 * (attempt + 1)));
+  }
+
+  if (!acquired) throw new Error("Custom media settings are busy; retry the action.");
+
+  try {
+    return await operation();
+  } finally {
+    try {
+      await ctx.db
+        .delete(schema.botSettings)
+        .where(and(eq(schema.botSettings.key, key), eq(schema.botSettings.value, lockValue)));
+    } catch {
+      console.warn(`Could not release custom-media lock for group ${ctx.chat.id}.`);
+    }
+  }
+}
+
+export async function mediaDeleteKey(fileId: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(fileId));
+  return [...new Uint8Array(digest).slice(0, 12)].map((value) => value.toString(16).padStart(2, "0")).join("");
+}
+
 async function promptTrigger(ctx: BotContext) {
   const message = ctx.msg;
   if (!message) return;
@@ -208,24 +250,26 @@ async function persistMediaAction(
   media: Omit<Media, "bucket">,
   action: Action | null,
 ): Promise<boolean> {
-  const group = await loadGroup(ctx);
-  const legacyId = getLegacyMediaId(media.fileId);
-  const clownBucket = bucketFor(media.kind, "clown");
-  const unclownBucket = bucketFor(media.kind, "unclown");
-  const clownIds = getSendableMediaIds(valuesFor(group, clownBucket));
-  const unclownIds = getSendableMediaIds(valuesFor(group, unclownBucket));
-  const targetIds = action === "clown" ? clownIds : unclownIds;
-  const alreadyExists = action !== null && hasMatch(targetIds, media.fileId, legacyId);
+  return await withMediaWriteLock(ctx, async () => {
+    const group = await loadGroup(ctx);
+    const legacyId = getLegacyMediaId(media.fileId);
+    const clownBucket = bucketFor(media.kind, "clown");
+    const unclownBucket = bucketFor(media.kind, "unclown");
+    const clownIds = getSendableMediaIds(valuesFor(group, clownBucket));
+    const unclownIds = getSendableMediaIds(valuesFor(group, unclownBucket));
+    const targetIds = action === "clown" ? clownIds : unclownIds;
+    const alreadyExists = action !== null && hasMatch(targetIds, media.fileId, legacyId);
 
-  if (mediaLimitReached(action, alreadyExists, targetIds)) return false;
+    if (mediaLimitReached(action, alreadyExists, targetIds)) return false;
 
-  const next = updatedMediaLists({ action, media, clownIds, unclownIds, legacyId });
-  await saveBuckets(ctx, {
-    [clownBucket]: next.clownIds.length ? next.clownIds : null,
-    [unclownBucket]: next.unclownIds.length ? next.unclownIds : null,
+    const next = updatedMediaLists({ action, media, clownIds, unclownIds, legacyId });
+    await saveBuckets(ctx, {
+      [clownBucket]: next.clownIds.length ? next.clownIds : null,
+      [unclownBucket]: next.unclownIds.length ? next.unclownIds : null,
+    });
+
+    return true;
   });
-
-  return true;
 }
 
 async function closeTriggerPrompt(ctx: BotContext, message: CallbackMessageReference): Promise<void> {
@@ -310,9 +354,8 @@ export function listEntries(group: GroupMedia | undefined): {
   return entries;
 }
 
-function deleteCallback(bucket: Bucket, fileId: string): string | null {
-  const key = /^\d+$/.test(fileId) ? fileId : getLegacyMediaId(fileId);
-  return key ? `trigger:delete:${bucket}:${key}` : null;
+async function deleteCallback(bucket: Bucket, fileId: string): Promise<string> {
+  return `trigger:delete:${bucket}:${await mediaDeleteKey(fileId)}`;
 }
 
 function triggerListKey(chatId: number): string {
@@ -350,6 +393,21 @@ async function writeTrackedPreviewIds(ctx: BotContext, key: string, ids: number[
     .onConflictDoUpdate({ target: schema.botSettings.key, set: { value } });
 }
 
+async function appendTrackedPreviewId(ctx: BotContext, key: string, messageId: number): Promise<void> {
+  await ctx.db.run(sql`
+    INSERT INTO bot_settings (key, value) VALUES (${key}, json_array(${messageId}))
+    ON CONFLICT(key) DO UPDATE SET value = json_insert(
+      CASE
+        WHEN json_valid(bot_settings.value) AND json_type(bot_settings.value) = 'array'
+          THEN bot_settings.value
+        ELSE '[]'
+      END,
+      '$[#]',
+      ${messageId}
+    )
+  `);
+}
+
 async function removePreviewMessage(ctx: BotContext, chatId: number, messageId: number): Promise<void> {
   try {
     await ctx.api.deleteMessage(chatId, messageId);
@@ -365,9 +423,12 @@ async function removePreviewMessage(ctx: BotContext, chatId: number, messageId: 
 async function cleanTrackedTriggerMessages(ctx: BotContext, key: string): Promise<void> {
   if (!ctx.chat) return;
   const chatId = ctx.chat.id;
-  const ids = await readTrackedPreviewIds(ctx, key);
+  const ids = await withMediaWriteLock(ctx, async () => {
+    const tracked = await readTrackedPreviewIds(ctx, key);
+    await writeTrackedPreviewIds(ctx, key, []);
+    return tracked;
+  });
   await Promise.all(ids.map((messageId) => removePreviewMessage(ctx, chatId, messageId)));
-  await writeTrackedPreviewIds(ctx, key, []);
 }
 
 async function removeTrackedPreviewMessage(ctx: BotContext, key: string, messageId: number): Promise<void> {
@@ -411,34 +472,31 @@ async function listTriggers(ctx: BotContext) {
   const entries = listEntries(group);
   if (entries.length === 0) return await ctx.replyTo(message, ctx.t("cmd_triggers_empty"));
 
-  const previewMessageIds: number[] = [];
-
   for (const entry of entries) {
     const keyboard = new InlineKeyboard();
-    const callbackData = deleteCallback(entry.bucket, entry.fileId);
-    if (callbackData) keyboard.text(ctx.t("triggers_btn_delete", { action: entry.action }), callbackData);
-    keyboard.text(ctx.t("panel_close"), "panel:close");
+    const callbackData = await deleteCallback(entry.bucket, entry.fileId);
+    keyboard.text(ctx.t("triggers_btn_delete", { action: entry.action }), callbackData);
+    keyboard.text(ctx.t("panel_close"), "panel:close:admin");
 
     // eslint-disable-next-line no-await-in-loop -- Keep each preview beside its matching action button.
     const sent = await sendTriggerPreview(ctx, entry, keyboard);
-    previewMessageIds.push(sent.message_id);
+    // Persist each successful send immediately so a later failure cannot orphan earlier previews.
+    await appendTrackedPreviewId(ctx, trackingKey, sent.message_id);
   }
 
   const summary = await ctx.reply(ctx.t("cmd_triggers_summary", { count: entries.length }), {
     reply_markup: new InlineKeyboard()
       .text(ctx.t("triggers_btn_clear"), "trigger:clear")
       .row()
-      .text(ctx.t("panel_close"), "panel:close"),
+      .text(ctx.t("panel_close"), "panel:close:admin"),
   });
-  previewMessageIds.push(summary.message_id);
-
-  await writeTrackedPreviewIds(ctx, trackingKey, previewMessageIds);
+  await appendTrackedPreviewId(ctx, trackingKey, summary.message_id);
   return summary;
 }
 
 async function deleteListedTrigger(ctx: BotContext) {
   const callback = ctx.callbackQuery;
-  const match = /^trigger:delete:(gifIds|stickerIds|unclownGifIds|unclownStickerIds):(\d{1,20})$/.exec(
+  const match = /^trigger:delete:(gifIds|stickerIds|unclownGifIds|unclownStickerIds):([a-f0-9]{24})$/.exec(
     callback?.data ?? "",
   );
 
@@ -446,22 +504,27 @@ async function deleteListedTrigger(ctx: BotContext) {
   if (!(await ownerOrGroupAdmin(ctx))) return;
 
   const bucket = match[1] as Bucket;
-  const legacyId = match[2];
-  const group = await loadGroup(ctx);
-  const current = valuesFor(group, bucket);
-  const updated = removeStoredMediaIds(current, legacyId);
+  const key = match[2];
+  const removed = await withMediaWriteLock(ctx, async () => {
+    const group = await loadGroup(ctx);
+    const current = valuesFor(group, bucket);
+    const hashes = await Promise.all(current.map((fileId) => mediaDeleteKey(fileId)));
+    const updated = current.filter((_, index) => hashes[index] !== key);
+    if (updated.length === current.length) return false;
 
-  if (updated.length === current.length) {
+    await saveBuckets(ctx, {
+      [bucket]: updated.length ? updated : null,
+    });
+    await removeTrackedPreviewMessage(ctx, triggerListKey(callback.message!.chat.id), callback.message!.message_id);
+    return true;
+  });
+
+  if (!removed) {
     return await ctx.answerCallbackQuery({
       text: ctx.t("trigger_not_found"),
       show_alert: true,
     });
   }
-
-  await saveBuckets(ctx, {
-    [bucket]: updated.length ? updated : null,
-  });
-  await removeTrackedPreviewMessage(ctx, triggerListKey(callback.message.chat.id), callback.message.message_id);
   await ctx.answerCallbackQuery({ text: ctx.t("trigger_removed") });
 
   await removePreviewMessage(ctx, callback.message.chat.id, callback.message.message_id);
@@ -478,7 +541,7 @@ async function askClear(ctx: BotContext) {
     .text(ctx.t("triggers_clear_yes"), "trigger:clear:yes")
     .text(ctx.t("triggers_clear_no"), "trigger:clear:no")
     .row()
-    .text(ctx.t("panel_close"), "panel:close");
+    .text(ctx.t("panel_close"), "panel:close:admin");
 
   return await ctx.editRichMessage({
     chatId: callback.message.chat.id,
@@ -495,20 +558,23 @@ async function clearTriggers(ctx: BotContext) {
   const chatId = callback.message.chat.id;
   const summaryMessageId = callback.message.message_id;
   const trackingKey = triggerListKey(chatId);
-  const trackedMessageIds = await readTrackedPreviewIds(ctx, trackingKey);
-
-  await saveBuckets(ctx, {
-    gifIds: null,
-    stickerIds: null,
-    unclownGifIds: null,
-    unclownStickerIds: null,
+  const trackedMessageIds = await withMediaWriteLock(ctx, async () => {
+    const ids = await readTrackedPreviewIds(ctx, trackingKey);
+    await saveBuckets(ctx, {
+      gifIds: null,
+      stickerIds: null,
+      unclownGifIds: null,
+      unclownStickerIds: null,
+    });
+    await writeTrackedPreviewIds(ctx, trackingKey, []);
+    return ids;
   });
+
   await Promise.all(
     trackedMessageIds
       .filter((messageId) => messageId !== summaryMessageId)
       .map((messageId) => removePreviewMessage(ctx, chatId, messageId)),
   );
-  await writeTrackedPreviewIds(ctx, trackingKey, []);
   await ctx.answerCallbackQuery({
     text: ctx.t("triggers_cleared"),
   });
@@ -517,7 +583,7 @@ async function clearTriggers(ctx: BotContext) {
     chatId: callback.message.chat.id,
     messageId: callback.message.message_id,
     text: ctx.t("triggers_cleared"),
-    options: { reply_markup: new InlineKeyboard().text(ctx.t("panel_close"), "panel:close") },
+    options: { reply_markup: new InlineKeyboard().text(ctx.t("panel_close"), "panel:close:admin") },
   });
 }
 
@@ -530,7 +596,7 @@ async function cancelClear(ctx: BotContext) {
     chatId: callback.message.chat.id,
     messageId: callback.message.message_id,
     text: ctx.t("triggers_clear_cancelled"),
-    options: { reply_markup: new InlineKeyboard().text(ctx.t("panel_close"), "panel:close") },
+    options: { reply_markup: new InlineKeyboard().text(ctx.t("panel_close"), "panel:close:admin") },
   });
 }
 

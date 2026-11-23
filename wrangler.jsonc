@@ -13,5 +13,5 @@
       "migrations_dir": "drizzle",
     },
   ],
-  "vars": { "BOT_ADMIN_IDS": "", "BOT_USERNAME": "MHDLabs_clownbot" },
+  "vars": { "BOT_ADMIN_IDS": "", "BOT_USERNAME": "MHDLabs_clownbot", "BOT_READ_ALL_GROUP_MESSAGES": "" },
 }

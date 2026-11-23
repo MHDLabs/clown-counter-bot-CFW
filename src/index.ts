@@ -9,17 +9,14 @@ export interface Env {
   BOT_TOKEN: string;
   BOT_USERNAME?: string;
   BOT_ADMIN_IDS?: string;
+  BOT_READ_ALL_GROUP_MESSAGES?: string;
   DB: D1Database;
 }
 
 function safeErrorSummary(error: unknown): string {
-  if (!(error instanceof Error)) return "UnknownError";
-
-  const nested = "error" in error ? error.error : undefined;
-  if (nested instanceof GrammyError) return `${error.name}:${nested.name}:${nested.description}`;
-  if (nested instanceof Error) return `${error.name}:${nested.name}`;
-
-  return error.name;
+  if (error instanceof GrammyError) return "TelegramApiError";
+  if (error instanceof Error) return error.name;
+  return "UnknownError";
 }
 
 async function webhookSecret(token: string): Promise<string> {
@@ -40,7 +37,16 @@ function parseBotAdminIds(input: string | undefined): ReadonlySet<string> {
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
-    if (url.pathname === "/health") return Response.json({ ok: true });
+    if (url.pathname === "/health" && request.method === "GET") return Response.json({ ok: true });
+    if (url.pathname === "/ready" && request.method === "GET") {
+      try {
+        const result = await env.DB.prepare("SELECT 1 AS ok").first<{ ok: number }>();
+        if (result?.ok === 1) return Response.json({ ok: true, database: true });
+      } catch (error) {
+        console.error(`Readiness check failed (${safeErrorSummary(error)}).`);
+      }
+      return Response.json({ ok: false, database: false }, { status: 503 });
+    }
     if (url.pathname !== "/telegram" || request.method !== "POST") return new Response("Not found", { status: 404 });
     const token = env.BOT_TOKEN;
     if (!token || !/^\d{6,}:[\w-]+$/.test(token)) return new Response("Service unavailable", { status: 503 });

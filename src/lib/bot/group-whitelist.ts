@@ -172,17 +172,18 @@ async function isKnownGroupActive(
   if (group.botMemberStatus === "active") return true;
   if (group.botMemberStatus === "left" || group.botMemberStatus === "kicked") return false;
 
+  let member;
   try {
-    const member = await ctx.api.getChatMember(group.id, ctx.meId);
-    const active = isActiveMembership(member);
-    const botMemberStatus = active ? "active" : member.status === "kicked" ? "kicked" : "left";
-
-    await ctx.db.update(schema.groups).set({ botMemberStatus }).where(eq(schema.groups.id, group.id));
-
-    return active;
+    member = await ctx.api.getChatMember(group.id, ctx.meId);
   } catch {
     return false;
   }
+
+  const active = isActiveMembership(member);
+  const botMemberStatus = active ? "active" : member.status === "kicked" ? "kicked" : "left";
+  await ctx.db.update(schema.groups).set({ botMemberStatus }).where(eq(schema.groups.id, group.id));
+
+  return active;
 }
 
 async function notifyGroupIfActive(
@@ -256,10 +257,6 @@ async function shouldProcessGroupUpdate(ctx: BotContext): Promise<boolean> {
 export const groupWhitelistMiddleware: MiddlewareFn<BotContext> = async (ctx, next) => {
   if (!isGroupChat(ctx) || isGroupLifecycleUpdate(ctx)) return await next();
 
-  try {
-    if (await shouldProcessGroupUpdate(ctx)) return await next();
-  } catch {
-    // Fail closed and avoid leaking configuration or producing retrying Telegram webhook errors.
-    console.warn("Group whitelist check failed; ignored group update.");
-  }
+  // Database failures bubble up to the webhook boundary so Telegram can retry.
+  if (await shouldProcessGroupUpdate(ctx)) return await next();
 };

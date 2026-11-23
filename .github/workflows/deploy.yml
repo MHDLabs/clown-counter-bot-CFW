@@ -50,6 +50,7 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
       BOT_ADMIN_IDS: ${{ secrets.BOT_ADMIN_IDS }}
+      BOT_READ_ALL_GROUP_MESSAGES: ${{ vars.BOT_READ_ALL_GROUP_MESSAGES }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
@@ -64,6 +65,7 @@ jobs:
           test -n "$CLOUDFLARE_API_TOKEN" || { echo 'Missing CLOUDFLARE_API_TOKEN'; exit 1; }
           test -n "$BOT_TOKEN" || { echo 'Missing BOT_TOKEN'; exit 1; }
           [[ -z "$BOT_ADMIN_IDS" || "$BOT_ADMIN_IDS" =~ ^[0-9]+(,[0-9]+)*$ ]] || { echo 'BOT_ADMIN_IDS must be a comma-separated list of numeric Telegram IDs'; exit 1; }
+          [[ -z "$BOT_READ_ALL_GROUP_MESSAGES" || "$BOT_READ_ALL_GROUP_MESSAGES" == "true" || "$BOT_READ_ALL_GROUP_MESSAGES" == "false" ]] || { echo 'BOT_READ_ALL_GROUP_MESSAGES must be true, false, or empty'; exit 1; }
       - name: Resolve or create the production D1 database
         shell: bash
         run: |
@@ -105,6 +107,8 @@ jobs:
           '
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - name: Resolve Telegram bot username
+        run: pnpm resolve:bot-username
       - name: Apply non-destructive production migrations
         run: pnpm db:migrate:prod
       - name: Deploy Worker
@@ -120,8 +124,10 @@ jobs:
         run: printf '%s' "$BOT_TOKEN" | pnpm exec wrangler secret put BOT_TOKEN
       - name: Register Telegram webhook
         run: pnpm set:webhook
-      - name: Verify Worker health
-        run: curl --fail --silent --show-error "$WORKER_URL/health"
+      - name: Verify Worker liveness and D1 readiness
+        run: |
+          curl --fail --silent --show-error "$WORKER_URL/health"
+          curl --fail --silent --show-error "$WORKER_URL/ready"
       - name: Capture live Worker logs for diagnosis
         if: github.event_name == 'workflow_dispatch' && inputs.capture_worker_logs
         shell: bash

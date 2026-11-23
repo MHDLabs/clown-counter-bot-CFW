@@ -20,7 +20,7 @@ async function promptResetStats(ctx: BotContext) {
     .text(ctx.t("cmd_resetstats_confirm_yes"), yesData)
     .text(ctx.t("cmd_resetstats_confirm_no"), noData)
     .row()
-    .text(ctx.t("panel_close"), "panel:close");
+    .text(ctx.t("panel_close"), "panel:close:admin");
 
   return await ctx.richReply(ctx.t("cmd_resetstats_confirm"), {
     reply_markup: keyboard,

@@ -51,6 +51,12 @@ export const clownCooldownAttempts = t.sqliteTable(
   ],
 );
 
+export const webhookUpdates = t.sqliteTable("webhook_updates", {
+  updateId: t.integer().primaryKey(),
+  status: t.text().$type<"processing" | "processed">().notNull(),
+  updatedAt: t.integer().notNull(),
+});
+
 export const clownVotes = t.sqliteTable(
   "clown_votes",
   {

@@ -32,12 +32,18 @@ export function translate(locale: "en" | "fa", key: string, variables?: Record<s
 
 export function i18nMiddleware() {
   return async (ctx: BotContext, next: () => Promise<void>) => {
-    const saved = ctx.from
-      ? await ctx.db.query.userPreferences.findFirst({
+    let saved: { locale: "en" | "fa" } | undefined;
+    if (ctx.from) {
+      try {
+        saved = await ctx.db.query.userPreferences.findFirst({
           columns: { locale: true },
           where: (fields, operators) => operators.eq(fields.userId, String(ctx.from?.id)),
-        })
-      : undefined;
+        });
+      } catch (error) {
+        const reason = error instanceof Error ? error.name : "UnknownError";
+        console.warn(`Could not load language preference for update ${ctx.update.update_id} (${reason}); using the Telegram language.`);
+      }
+    }
     const locale = saved?.locale ?? (ctx.from?.language_code?.toLowerCase().startsWith("en") ? "en" : "fa");
     // Each update has its own context; the saved preference is only known after the awaited D1 lookup.
     // eslint-disable-next-line require-atomic-updates

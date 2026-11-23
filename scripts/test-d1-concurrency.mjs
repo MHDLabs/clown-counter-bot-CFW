@@ -213,6 +213,20 @@ await command(`DELETE FROM allowed_groups WHERE group_id='${group}'`);
 await command(`DELETE FROM bot_settings WHERE key='group_whitelist_enabled'`);
 await command(`UPDATE groups SET bot_member_status=NULL WHERE id='${group}'`);
 
+const webhookUpdateId = 2_000_000_001;
+await command(`DELETE FROM webhook_updates WHERE update_id=${webhookUpdateId}`);
+const claimUpdate = `INSERT INTO webhook_updates(update_id,status,updated_at)
+  VALUES(${webhookUpdateId},'processing',${now})
+  ON CONFLICT(update_id) DO UPDATE SET status='processing',updated_at=excluded.updated_at
+  WHERE webhook_updates.status='processing' AND webhook_updates.updated_at<=${now - 30_000}`;
+const claims = await Promise.all(Array.from({ length: 8 }, () => command(claimUpdate)));
+const successfulClaims = claims.reduce((total, result) => total + (result[0].meta.changes ?? 0), 0);
+if (successfulClaims !== 1) throw new Error("Concurrent webhook deliveries were not deduplicated");
+await command(`UPDATE webhook_updates SET status='processed',updated_at=${now} WHERE update_id=${webhookUpdateId}`);
+const repeatedClaim = await command(claimUpdate);
+if (repeatedClaim[0].meta.changes !== 0) throw new Error("A processed Telegram update was claimed a second time");
+await command(`DELETE FROM webhook_updates WHERE update_id=${webhookUpdateId}`);
+
 console.log(
-  "D1 vote/daily-award concurrency, cooldown boundary, third-attempt strike counting/expiry/group isolation, UTC day boundary, group/personal/current-period statistics, membership tracking, whitelist persistence, and 64-bit text IDs passed.",
+  "D1 vote/daily-award concurrency, cooldown boundary, third-attempt strike counting/expiry/group isolation, Tehran day boundary, group/personal/current-period statistics, membership tracking, whitelist persistence, webhook update idempotency, and 64-bit text IDs passed.",
 );

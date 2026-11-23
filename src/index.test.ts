@@ -16,6 +16,19 @@ describe("Worker HTTP entry point", () => {
     await expect(response.json()).resolves.toEqual({ ok: true });
   });
 
+  it("checks the D1 binding in the readiness endpoint", async () => {
+    const unavailable = await worker.fetch(new Request("https://bot.test/ready"), env);
+    expect(unavailable.status).toBe(503);
+    await expect(unavailable.json()).resolves.toEqual({ ok: false, database: false });
+
+    const ready = await worker.fetch(new Request("https://bot.test/ready"), {
+      ...env,
+      DB: { prepare: () => ({ first: async () => ({ ok: 1 }) }) } as unknown as Env["DB"],
+    });
+    expect(ready.status).toBe(200);
+    await expect(ready.json()).resolves.toEqual({ ok: true, database: true });
+  });
+
   it("rejects unknown paths", async () => {
     const response = await worker.fetch(new Request("https://bot.test/"), env);
 

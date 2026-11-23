@@ -17,6 +17,7 @@ A Persian/English Telegram group bot for fun: clown voting, group statistics, cu
 - List, remove, or clear saved media with `/triggers`; clear-all also removes the preview messages sent by the bot.
 - Configurable vote cooldown and statistics reset for group admins.
 - Persian right-to-left messages and English translations.
+- D1-backed Telegram update deduplication and a database readiness endpoint at `/ready`.
 
 ## 🤖 Commands
 
@@ -68,6 +69,8 @@ This creates an independent copy of the bot in your own accounts.
    pnpm exec wrangler secret put BOT_TOKEN
    ```
 
+Set `BOT_USERNAME` in `wrangler.jsonc` to the exact username returned by BotFather, without the @ prefix. A mismatch prevents targeted commands such as `/stats@YourBot` from being recognized. The upstream repository's automated deployment resolves this value from Telegram automatically.
+
 6. Once the Worker URL is available, register the Telegram webhook and command menus:
 
    ```sh
@@ -110,11 +113,13 @@ By default, Telegram group administrators can manage the bot's group settings. T
 
 ```jsonc
 "vars": {
-  "BOT_ADMIN_IDS": "123456789,987654321"
+  "BOT_ADMIN_IDS": "123456789,987654321",
+  "BOT_USERNAME": "YourBotUsername",
+  "BOT_READ_ALL_GROUP_MESSAGES": ""
 }
 ```
 
-This allowlist grants bot-owner access to the private panel and bot/group settings, but not Cloudflare or D1 access. Only include trusted IDs, and do not put personal IDs in the public template. The first ID in this list is displayed as the bot owner's ID.
+This allowlist grants bot-owner access to the private panel and bot/group settings, but not Cloudflare or D1 access. Set `BOT_USERNAME` to the actual Telegram bot username without @. Leave `BOT_READ_ALL_GROUP_MESSAGES` empty to preserve the current Telegram setting, set it to `true` to disable Privacy Mode and receive ordinary group messages, or set it to `false` to enable Privacy Mode. Disabling Privacy Mode lets the bot receive ordinary group messages; do so only with the group's knowledge. Only include trusted IDs, and do not put personal IDs in the public template. The first ID in this list is displayed as the bot owner's ID.
 
 ### 4. Add the bot token and deploy
 
@@ -122,6 +127,8 @@ This allowlist grants bot-owner access to the private panel and bot/group settin
 pnpm exec wrangler secret put BOT_TOKEN
 pnpm deploy
 ```
+
+Before deployment, set `BOT_USERNAME` in `wrangler.jsonc` to the exact username shown by BotFather. The upstream repository's CI resolves it from Telegram automatically; manual installations must set it themselves.
 
 The `pnpm deploy` script applies pending D1 migrations and then deploys the Worker.
 
@@ -133,13 +140,13 @@ Use the Worker URL printed by Wrangler:
 WORKER_URL=https://<worker>.<subdomain>.workers.dev BOT_TOKEN=<your-token> pnpm set:webhook
 ```
 
-This script registers the webhook at `/telegram`, enables bot-membership updates, and configures Telegram command menus. Pass the same `BOT_ADMIN_IDS` value so the owner-specific command menu is installed:
+This script registers the webhook at `/telegram`, enables bot-membership updates, and configures Telegram command menus. Set `BOT_READ_ALL_GROUP_MESSAGES` in `wrangler.jsonc` to `true` to disable Telegram Privacy Mode and receive ordinary group messages, `false` to enable Privacy Mode, or leave it empty to preserve the current Telegram setting. Disabling Privacy Mode lets the bot receive more group messages, so enable it only with the group's knowledge. Pass the same value to `pnpm set:webhook` when registering the webhook. Pass the same `BOT_ADMIN_IDS` value so the owner-specific command menu is installed:
 
 ```sh
 BOT_ADMIN_IDS=<your-telegram-id> WORKER_URL=https://<worker>.<subdomain>.workers.dev BOT_TOKEN=<your-token> pnpm set:webhook
 ```
 
-The endpoint `https://<worker>.<subdomain>.workers.dev/health` should return `{"ok":true}`.
+The `/health` endpoint reports Worker liveness; `/ready` also checks that D1 is reachable.
 
 ## 💻 Local development
 

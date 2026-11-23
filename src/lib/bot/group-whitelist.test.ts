@@ -167,7 +167,7 @@ describe("group allowlist middleware", () => {
     const { ctx, sendMessage } = createContext({ enabled: true, fail: true });
     const next = vi.fn().mockResolvedValue(undefined);
 
-    await expect(groupWhitelistMiddleware(ctx, next)).resolves.toBeUndefined();
+    await expect(groupWhitelistMiddleware(ctx, next)).rejects.toThrow("D1 unavailable");
     expect(next).not.toHaveBeenCalled();
     expect(sendMessage).not.toHaveBeenCalled();
   });

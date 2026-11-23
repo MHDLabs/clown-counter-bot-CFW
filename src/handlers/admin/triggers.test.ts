@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { listEntries, removeStoredMediaIds } from "./triggers";
+import { listEntries, mediaDeleteKey, removeStoredMediaIds } from "./triggers";
 
 function syntheticFileId(): string {
   const data = new Uint8Array(26);
@@ -39,6 +39,14 @@ describe("custom media trigger list", () => {
     expect(removeStoredMediaIds([fileId, "9007199254740995", "another-id"], "9007199254740995")).toEqual([
       "another-id",
     ]);
+  });
+
+  it("creates a stable opaque delete key without parsing Telegram file_id internals", async () => {
+    const first = await mediaDeleteKey("telegram-file-id-one");
+    const second = await mediaDeleteKey("telegram-file-id-two");
+    expect(first).toMatch(/^[a-f0-9]{24}$/);
+    expect(await mediaDeleteKey("telegram-file-id-one")).toBe(first);
+    expect(second).not.toBe(first);
   });
 
   it("maps the four legacy D1 media arrays to their action and media types", () => {

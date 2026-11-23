@@ -1,5 +1,6 @@
 /* eslint-disable camelcase, dot-notation */
 import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
 
 import { administratorMenu, commandMenus } from "./command-menus.mjs";
 
@@ -59,6 +60,31 @@ console.log(
     firstName: botInfo.result.first_name,
   })}`,
 );
+
+const wranglerConfig = await readFile(new URL("../wrangler.jsonc", import.meta.url), "utf8");
+const configuredUsername = /"BOT_USERNAME"\s*:\s*"([^"]+)"/.exec(wranglerConfig)?.[1];
+if (configuredUsername !== botInfo.result.username) {
+  throw new Error("BOT_USERNAME does not match Telegram getMe. Run pnpm resolve:bot-username and redeploy first.");
+}
+
+const configuredPrivacy = /"BOT_READ_ALL_GROUP_MESSAGES"\s*:\s*"([^"]*)"/.exec(wranglerConfig)?.[1] ?? "";
+const environmentPrivacy = process.env["BOT_READ_ALL_GROUP_MESSAGES"];
+const readGroupMessages =
+  environmentPrivacy === "true" || environmentPrivacy === "false" ? environmentPrivacy : configuredPrivacy;
+if (readGroupMessages !== "" && readGroupMessages !== "true" && readGroupMessages !== "false") {
+  throw new Error("BOT_READ_ALL_GROUP_MESSAGES must be true, false, or empty.");
+}
+if (readGroupMessages !== "") {
+  const enabled = readGroupMessages === "true";
+  await telegram("setMySettings", { can_read_all_group_messages: enabled });
+  const updatedBotInfo = await telegram("getMe", {});
+  if (Boolean(updatedBotInfo.result?.can_read_all_group_messages) !== enabled) {
+    throw new Error("Telegram did not retain the requested group message privacy setting.");
+  }
+  console.log(`Telegram Privacy Mode: ${enabled ? "disabled (ordinary group messages are delivered)" : "enabled"}.`);
+} else {
+  console.log("Telegram Privacy Mode was left unchanged.");
+}
 
 /** @param {string} label @param {{ result: { url?: string; pending_update_count?: number; last_error_date?: number; last_error_message?: string; allowed_updates?: string[] } }} response */
 function reportWebhookStatus(label, response) {

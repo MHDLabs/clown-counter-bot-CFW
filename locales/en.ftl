@@ -1,7 +1,7 @@
 cmd_start = Welcome! I keep playful clown scores for your group. Add me to a group and reply to someone's message with /clown or 🤡 to vote. You can also reply with “clown” or 🤡 if I can see group messages. Change your language with /language. Privacy: /privacy | Source: /source
 
-cmd_privacy = Privacy: I store only the group and user IDs/names needed for scores, vote times, group settings, custom media identifiers, and your selected language. Cooldown attempt counts have the same expiry as their cooldown and expired rows are cleaned up during later cooldown processing. I do not keep a message history. Configured bot administrators can privately view registered group names and current net clown scores; the panel does not show numeric member IDs, voters, or vote history. The source is available with /source.
-
+cmd_privacy =
+    Privacy: D1 stores user and group IDs/display names, vote records with timestamps and point amounts, group settings and cooldowns, custom Telegram media file identifiers, language preferences, bot membership and allowlist state, temporary cooldown-attempt counters with expiry, and message IDs used to clean up custom-media previews, and Telegram update IDs/statuses retained for up to seven days to prevent duplicate processing. The bot does not store a message-history archive. Configured bot administrators can privately view registered group names and current net scores; the panel does not display member IDs, voters, or vote history. The source is available with /source.
 cmd_source =
     ✨ The Clown Counter is an open-source project!
 
@@ -72,81 +72,9 @@ cmd_clown_of_the_day_no_users = Nobody has been voted on in this group yet. Reco
 
 cmd_clown_of_the_day = 👑 Clown of the day: { $clown } — { $quantity } clown votes!
 
-cmd_setgif = Reply to a GIF with /setgif to add it as a clowning GIF. Up to 3 GIFs can be configured.
-
-cmd_setgif_invalid = Reply to a GIF with this command.
-
-cmd_setgif_limit = The GIF list is full. Remove one with /removegif first (maximum 3).
-
-cmd_setgif_done = Clowning GIF added ({ $count } of { $max }).
-
-cmd_removegif_usage = Reply to a configured GIF with /removegif to remove it.
-
-cmd_removegif_invalid = Reply to a GIF with this command.
-
-cmd_removegif_empty = No clowning GIFs are configured. Add one with /setgif.
-
-cmd_removegif_not_found = That GIF is not in this group's configured list.
-
-cmd_removegif_done = GIF removed.
-
-cmd_setsticker = Reply to a sticker with /setsticker to add it as a clowning sticker. Up to 3 can be configured.
-
-cmd_setsticker_invalid = Reply to a sticker with this command.
-
-cmd_setsticker_limit = The sticker list is full. Remove one with /removesticker first (maximum 3).
-
-cmd_setsticker_done = Clowning sticker added ({ $count } of { $max }).
-
-cmd_removesticker_usage = Reply to a configured sticker with /removesticker to remove it.
-
-cmd_removesticker_invalid = Reply to a sticker with this command.
-
-cmd_removesticker_empty = No clowning stickers are configured. Add one with /setsticker.
-
-cmd_removesticker_not_found = That sticker is not in this group's configured list.
-
-cmd_removesticker_done = Sticker removed.
-
 cmd_clown_gifs_empty = No clowning GIFs are configured in this group. Add some with /setgif.
 
 cmd_clown_stickers_empty = No clowning stickers are configured in this group. Add some with /setsticker.
-
-cmd_setunclowngif = Reply to a GIF with /setunclowngif to add it as an unclowning GIF. Up to 3 can be configured.
-
-cmd_setunclowngif_invalid = Reply to a GIF with this command.
-
-cmd_setunclowngif_limit = The unclowning GIF list is full. Remove one with /removeunclowngif first (maximum 3).
-
-cmd_setunclowngif_done = Unclowning GIF added ({ $count } of { $max }).
-
-cmd_removeunclowngif_usage = Reply to a configured GIF with /removeunclowngif to remove it.
-
-cmd_removeunclowngif_invalid = Reply to a GIF with this command.
-
-cmd_removeunclowngif_empty = No unclowning GIFs are configured. Add one with /setunclowngif.
-
-cmd_removeunclowngif_not_found = That GIF is not in this group's configured list.
-
-cmd_removeunclowngif_done = GIF removed.
-
-cmd_setunclownsticker = Reply to a sticker with /setunclownsticker to add it as an unclowning sticker. Up to 3 can be configured.
-
-cmd_setunclownsticker_invalid = Reply to a sticker with this command.
-
-cmd_setunclownsticker_limit = The unclowning sticker list is full. Remove one with /removeunclownsticker first (maximum 3).
-
-cmd_setunclownsticker_done = Unclowning sticker added ({ $count } of { $max }).
-
-cmd_removeunclownsticker_usage = Reply to a configured sticker with /removeunclownsticker to remove it.
-
-cmd_removeunclownsticker_invalid = Reply to a sticker with this command.
-
-cmd_removeunclownsticker_empty = No unclowning stickers are configured. Add one with /setunclownsticker.
-
-cmd_removeunclownsticker_not_found = That sticker is not in this group's configured list.
-
-cmd_removeunclownsticker_done = Sticker removed.
 
 cmd_setcooldown_usage = Set the voting cooldown in minutes. Usage: /setcooldown <minutes> (0–60; default 10).
 
@@ -233,14 +161,14 @@ help_personal_period = Stats start at the current period's reset time. /resetsta
 
 help_admin_heading = Group settings
 
-help_admin_intro = Group administrators and designated bot administrators can use these commands in groups. The bot must be able to check Telegram administrator status.
-
+help_admin_intro =
+    Group administrators and designated IDs in BOT_ADMIN_IDS can manage group settings. Telegram administrator checks require the bot to have sufficient access.
 help_set_cooldown = /setcooldown minutes — set the vote cooldown to 0–60 minutes (default: 10).
 
 help_reset_stats = /resetstats — start a new statistics period; stored vote history is kept.
 
-help_custom_clown_media = Reply to a GIF/animation or sticker with /trigger, then choose whether it adds or removes a clown point. Use /triggers to list, remove, or clear saved media. Up to 3 GIFs and 3 stickers per action.
-
+help_custom_clown_media =
+    Reply to a GIF/animation or sticker with /trigger, then choose whether it adds or removes a clown point. Use /triggers to list, remove, or clear saved media. Up to 3 GIFs and 3 stickers per action.
 help_custom_unclown_media = The same /trigger command configures media for both clown and unclown actions. To use saved media, reply to the target member with the GIF or sticker.
 
 help_private_heading = Private chat
@@ -262,9 +190,7 @@ cmd_mystats_removed = Points removed: { $removed }
 cmd_mystats_unavailable = I couldn't identify a user. Reply to a group member's message with this command.
 
 cmd_clown_media_legacy =
-    Some saved media use legacy identifiers that Telegram cannot send. Reply to each original GIF or sticker and add it again with /setgif, /setsticker, /setunclowngif, or /setunclownsticker.
-
-
+    Some saved media use legacy identifiers that Telegram cannot send. Reply to each original GIF or sticker and add it again with /trigger to store a current Telegram file_id.
 cmd_clown_media_send_failed = 😕 Telegram could not send one or more saved media items. Re-add the affected media with the matching setup command.
 
 # Owner-only bot status and group allowlist
