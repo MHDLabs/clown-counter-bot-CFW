@@ -27,6 +27,15 @@ jobs:
           node-version: 22
       - run: corepack enable
       - run: pnpm install --frozen-lockfile
+      - name: Emit Prettier-formatted candidates for diagnosis
+        shell: bash
+        run: |
+          for file in src/handlers/admin/triggers.ts src/handlers/group/migrate.ts src/lib/bot/group-whitelist.ts src/lib/date.ts; do
+            echo "PRETTIER_BASE64_BEGIN:$file"
+            pnpm exec prettier "$file" | base64 -w0
+            echo
+            echo "PRETTIER_BASE64_END:$file"
+          done
       - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm typecheck
