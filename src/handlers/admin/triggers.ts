@@ -1,13 +1,12 @@
 import type { Message } from "grammy/types";
 
-import { eq } from "drizzle-orm";
 import { GrammyError, InlineKeyboard } from "grammy";
 
 import type { CallbackQueryHandler, CommandHandler } from "@/handlers";
 import type { BotContext } from "@/lib/bot";
 import type { GroupPatch } from "@/lib/utils";
 
-import { schema } from "@/db";
+import type { schema } from "@/db";
 import { isAdmin } from "@/lib/bot";
 import { getLegacyMediaId, getSendableMediaIds, matchesStoredMediaId } from "@/lib/file-id/storage";
 import { saveGroup } from "@/lib/utils";
@@ -17,16 +16,23 @@ const BUCKETS = ["gifIds", "stickerIds", "unclownGifIds", "unclownStickerIds"] a
 
 type Bucket = (typeof BUCKETS)[number];
 type Action = "clown" | "unclown";
-type Media = {
+type MediaKind = "animation" | "sticker";
+
+interface Media {
   fileId: string;
-  kind: "animation" | "sticker";
+  kind: MediaKind;
   bucket: Bucket;
-};
+}
 
 type GroupMedia = Pick<
   typeof schema.groups.$inferSelect,
   "gifIds" | "stickerIds" | "unclownGifIds" | "unclownStickerIds"
 >;
+
+interface MediaLists {
+  clownIds: string[];
+  unclownIds: string[];
+}
 
 function mediaFromMessage(message: Message | undefined): Omit<Media, "bucket"> | null {
   const animation = message?.animation?.file_id;
@@ -38,14 +44,15 @@ function mediaFromMessage(message: Message | undefined): Omit<Media, "bucket"> |
   return null;
 }
 
-function bucketFor(kind: Media["kind"], action: Action): Bucket {
+function bucketFor(kind: MediaKind, action: Action): Bucket {
   if (kind === "animation") {
     return action === "clown" ? "gifIds" : "unclownGifIds";
   }
+
   return action === "clown" ? "stickerIds" : "unclownStickerIds";
 }
 
-function mediaLabel(ctx: BotContext, kind: Media["kind"]): string {
+function mediaLabel(ctx: BotContext, kind: MediaKind): string {
   return ctx.t(kind === "animation" ? "trigger_media_animation" : "trigger_media_sticker");
 }
 
@@ -59,19 +66,13 @@ function hasMatch(values: readonly string[], fileId: string, legacyId: string | 
 
 function promptKeyboard(ctx: BotContext, action: Action | null): InlineKeyboard {
   const keyboard = new InlineKeyboard();
-  if (action !== "clown") {
-    keyboard.text(ctx.t("trigger_btn_clown"), "trigger:set:clown");
-  }
-  if (action !== "unclown") {
-    keyboard.text(ctx.t("trigger_btn_unclown"), "trigger:set:unclown");
-  }
-  if (action) {
-    keyboard.text(ctx.t("trigger_btn_remove"), "trigger:remove");
-  }
+  if (action !== "clown") keyboard.text(ctx.t("trigger_btn_clown"), "trigger:set:clown");
+  if (action !== "unclown") keyboard.text(ctx.t("trigger_btn_unclown"), "trigger:set:unclown");
+  if (action) keyboard.text(ctx.t("trigger_btn_remove"), "trigger:remove");
   return keyboard;
 }
 
-function promptBlocks(ctx: BotContext, kind: Media["kind"], action: Action | null) {
+function promptBlocks(ctx: BotContext, kind: MediaKind, action: Action | null) {
   const state = action
     ? ctx.t(action === "clown" ? "trigger_state_clown" : "trigger_state_unclown")
     : ctx.t("trigger_state_unset");
@@ -90,8 +91,51 @@ function promptBlocks(ctx: BotContext, kind: Media["kind"], action: Action | nul
   };
 }
 
+function actionFromCallback(data: string | undefined): Action | null {
+  if (data === "trigger:set:clown") return "clown";
+  if (data === "trigger:set:unclown") return "unclown";
+  return null;
+}
+
+function updatedMediaLists(
+  action: Action | null,
+  media: Omit<Media, "bucket">,
+  clownIds: string[],
+  unclownIds: string[],
+  legacyId: string | null,
+): MediaLists {
+  const matches = (id: string) => matchesStoredMediaId(id, media.fileId, legacyId);
+  const add = (ids: string[]) => (hasMatch(ids, media.fileId, legacyId) ? ids : [...ids, media.fileId]);
+  const remove = (ids: string[]) => ids.filter((id) => !matches(id));
+
+  if (action === "clown") {
+    return { clownIds: add(clownIds), unclownIds: remove(unclownIds) };
+  }
+
+  if (action === "unclown") {
+    return { clownIds: remove(clownIds), unclownIds: add(unclownIds) };
+  }
+
+  return { clownIds: remove(clownIds), unclownIds: remove(unclownIds) };
+}
+
+function mediaLimitReached(
+  action: Action | null,
+  alreadyExists: boolean,
+  targetIds: string[],
+): boolean {
+  return action !== null && !alreadyExists && targetIds.length >= MAX_PER_KIND;
+}
+
+function displayAction(ctx: BotContext, action: Action | null): string {
+  if (action === "clown") return ctx.t("trigger_state_clown");
+  if (action === "unclown") return ctx.t("trigger_state_unclown");
+  return ctx.t("trigger_state_unset");
+}
+
 async function ownerOrGroupAdmin(ctx: BotContext): Promise<boolean> {
   if (await isAdmin(ctx)) return true;
+
   await ctx.answerCallbackQuery({
     text: ctx.t("trigger_not_admin"),
     show_alert: true,
@@ -101,6 +145,7 @@ async function ownerOrGroupAdmin(ctx: BotContext): Promise<boolean> {
 
 async function loadGroup(ctx: BotContext) {
   if (!ctx.chat) return undefined;
+
   return await ctx.db.query.groups.findFirst({
     columns: {
       gifIds: true,
@@ -114,6 +159,7 @@ async function loadGroup(ctx: BotContext) {
 
 async function saveBuckets(ctx: BotContext, patch: GroupPatch) {
   if (!ctx.chat) return;
+
   await saveGroup(ctx.db, {
     chatId: ctx.chat.id,
     name: ctx.chat.title,
@@ -124,15 +170,11 @@ async function saveBuckets(ctx: BotContext, patch: GroupPatch) {
 async function promptTrigger(ctx: BotContext) {
   const message = ctx.msg;
   if (!message) return;
-  if (!(await isAdmin(ctx))) {
-    return await ctx.replyTo(message, ctx.t("cmd_admin_only"));
-  }
+  if (!(await isAdmin(ctx))) return await ctx.replyTo(message, ctx.t("cmd_admin_only"));
 
   const target = message.reply_to_message;
   const media = mediaFromMessage(target);
-  if (!target || !media) {
-    return await ctx.replyTo(message, ctx.t("cmd_trigger_usage"));
-  }
+  if (!target || !media) return await ctx.replyTo(message, ctx.t("cmd_trigger_usage"));
 
   const group = await loadGroup(ctx);
   const legacyId = getLegacyMediaId(media.fileId);
@@ -154,98 +196,76 @@ async function promptTrigger(ctx: BotContext) {
   });
 }
 
+async function showMissingMedia(ctx: BotContext, message: NonNullable<BotContext["callbackQuery"]>["message"]) {
+  await ctx.answerCallbackQuery({
+    text: ctx.t("trigger_missing_media"),
+    show_alert: true,
+  });
+
+  return await ctx.editRichMessage({
+    chatId: message.chat.id,
+    messageId: message.message_id,
+    text: ctx.t("trigger_missing_media"),
+    options: { reply_markup: new InlineKeyboard() },
+  });
+}
+
 async function applyChoice(ctx: BotContext) {
   const callback = ctx.callbackQuery;
-  if (!callback?.message || !ctx.chat || !(await ownerOrGroupAdmin(ctx))) {
-    return;
-  }
+  if (!callback?.message || !ctx.chat || !(await ownerOrGroupAdmin(ctx))) return;
 
   const promptMessage = callback.message;
   const target = "reply_to_message" in promptMessage ? promptMessage.reply_to_message : undefined;
   const media = mediaFromMessage(target);
+  if (!media) return await showMissingMedia(ctx, promptMessage);
 
-  if (!media) {
-    await ctx.answerCallbackQuery({
-      text: ctx.t("trigger_missing_media"),
-      show_alert: true,
-    });
-    return await ctx.editRichMessage({
-      chatId: promptMessage.chat.id,
-      messageId: promptMessage.message_id,
-      text: ctx.t("trigger_missing_media"),
-      options: { reply_markup: new InlineKeyboard() },
-    });
-  }
-
-  const data = callback.data ?? "";
-  const action: Action | null =
-    data === "trigger:set:clown" ? "clown" : data === "trigger:set:unclown" ? "unclown" : null;
+  const action = actionFromCallback(callback.data);
   const group = await loadGroup(ctx);
   const legacyId = getLegacyMediaId(media.fileId);
   const clownBucket = bucketFor(media.kind, "clown");
   const unclownBucket = bucketFor(media.kind, "unclown");
   const clownIds = getSendableMediaIds(valuesFor(group, clownBucket));
   const unclownIds = getSendableMediaIds(valuesFor(group, unclownBucket));
-  const targetBucket = action ? bucketFor(media.kind, action) : null;
-  const targetIds = targetBucket === clownBucket ? clownIds : unclownIds;
-  const alreadyExists = hasMatch(targetIds, media.fileId, legacyId);
+  const targetIds = action === "clown" ? clownIds : unclownIds;
+  const alreadyExists = action !== null && hasMatch(targetIds, media.fileId, legacyId);
 
-  if (action && !alreadyExists && targetIds.length >= MAX_PER_KIND) {
+  if (mediaLimitReached(action, alreadyExists, targetIds)) {
     return await ctx.answerCallbackQuery({
       text: ctx.t("trigger_limit", { max: MAX_PER_KIND }),
       show_alert: true,
     });
   }
 
-  let nextClown = clownIds;
-  let nextUnclown = unclownIds;
-
-  if (action === "clown") {
-    nextClown = alreadyExists ? clownIds : [...clownIds, media.fileId];
-    nextUnclown = unclownIds.filter((id) => !matchesStoredMediaId(id, media.fileId, legacyId));
-  } else if (action === "unclown") {
-    nextUnclown = alreadyExists ? unclownIds : [...unclownIds, media.fileId];
-    nextClown = clownIds.filter((id) => !matchesStoredMediaId(id, media.fileId, legacyId));
-  } else {
-    nextClown = clownIds.filter((id) => !matchesStoredMediaId(id, media.fileId, legacyId));
-    nextUnclown = unclownIds.filter((id) => !matchesStoredMediaId(id, media.fileId, legacyId));
-  }
-
+  const next = updatedMediaLists(action, media, clownIds, unclownIds, legacyId);
   await saveBuckets(ctx, {
-    [clownBucket]: nextClown.length ? nextClown : null,
-    [unclownBucket]: nextUnclown.length ? nextUnclown : null,
+    [clownBucket]: next.clownIds.length ? next.clownIds : null,
+    [unclownBucket]: next.unclownIds.length ? next.unclownIds : null,
   });
-
-  const nextAction: Action | null = action && (action === "clown" ? nextClown : nextUnclown).length ? action : null;
 
   await ctx.answerCallbackQuery({
     text: ctx.t(action ? "trigger_saved" : "trigger_removed"),
   });
-
-  const nextState = nextAction
-    ? ctx.t(nextAction === "clown" ? "trigger_state_clown" : "trigger_state_unclown")
-    : ctx.t("trigger_state_unset");
 
   return await ctx.editRichMessage({
     chatId: promptMessage.chat.id,
     messageId: promptMessage.message_id,
     text: ctx.t("cmd_trigger_prompt", {
       media: mediaLabel(ctx, media.kind),
-      state: nextState,
+      state: displayAction(ctx, action),
     }),
-    options: { reply_markup: promptKeyboard(ctx, nextAction) },
+    options: { reply_markup: promptKeyboard(ctx, action) },
   });
 }
 
 export function listEntries(group: GroupMedia | undefined): {
   bucket: Bucket;
-  kind: Media["kind"];
+  kind: MediaKind;
   action: Action;
   fileId: string;
 }[] {
   const entries: {
     bucket: Bucket;
-    kind: Media["kind"];
+    kind: MediaKind;
     action: Action;
     fileId: string;
   }[] = [];
@@ -256,7 +276,7 @@ export function listEntries(group: GroupMedia | undefined): {
 
       entries.push({
         bucket,
-        kind: bucket.includes("Sticker") || bucket.includes("sticker") ? "sticker" : "animation",
+        kind: bucket === "stickerIds" || bucket === "unclownStickerIds" ? "sticker" : "animation",
         action: bucket.startsWith("unclown") ? "unclown" : "clown",
         fileId,
       });
@@ -274,42 +294,31 @@ function deleteCallback(bucket: Bucket, fileId: string): string | null {
 async function listTriggers(ctx: BotContext) {
   const message = ctx.msg;
   if (!message) return;
-  if (!(await isAdmin(ctx))) {
-    return await ctx.replyTo(message, ctx.t("cmd_admin_only"));
-  }
+  if (!(await isAdmin(ctx))) return await ctx.replyTo(message, ctx.t("cmd_admin_only"));
 
   const group = await loadGroup(ctx);
   const entries = listEntries(group);
-  if (entries.length === 0) {
-    return await ctx.replyTo(message, ctx.t("cmd_triggers_empty"));
-  }
+  if (entries.length === 0) return await ctx.replyTo(message, ctx.t("cmd_triggers_empty"));
 
   for (const entry of entries) {
     const callbackData = deleteCallback(entry.bucket, entry.fileId);
     const keyboard = new InlineKeyboard();
-    if (callbackData) {
-      keyboard.text(ctx.t("trigger_btn_delete"), callbackData);
-    }
+    if (callbackData) keyboard.text(ctx.t("trigger_btn_delete"), callbackData);
 
     try {
       if (entry.kind === "animation") {
         // eslint-disable-next-line no-await-in-loop -- Keep the media list in a stable order.
-        await ctx.replyWithAnimation(entry.fileId, {
-          reply_markup: keyboard,
-        });
+        await ctx.replyWithAnimation(entry.fileId, { reply_markup: keyboard });
       } else {
         // eslint-disable-next-line no-await-in-loop -- Keep the media list in a stable order.
-        await ctx.replyWithSticker(entry.fileId, {
-          reply_markup: keyboard,
-        });
+        await ctx.replyWithSticker(entry.fileId, { reply_markup: keyboard });
       }
     } catch (error) {
       if (!(error instanceof GrammyError)) throw error;
+
       // eslint-disable-next-line no-await-in-loop -- Keep fallback entries beside their media.
       await ctx.richReply(
-        ctx.t("trigger_stale_media", {
-          media: mediaLabel(ctx, entry.kind),
-        }),
+        ctx.t("trigger_stale_media", { media: mediaLabel(ctx, entry.kind) }),
         { reply_markup: keyboard },
       );
     }
@@ -326,9 +335,7 @@ async function deleteListedTrigger(ctx: BotContext) {
     callback?.data ?? "",
   );
 
-  if (!callback?.message || !ctx.chat || !match?.[1] || !match[2]) {
-    return;
-  }
+  if (!callback?.message || !ctx.chat || !match?.[1] || !match[2]) return;
   if (!(await ownerOrGroupAdmin(ctx))) return;
 
   const bucket = match[1] as Bucket;
@@ -363,9 +370,7 @@ async function deleteListedTrigger(ctx: BotContext) {
 
 async function askClear(ctx: BotContext) {
   const callback = ctx.callbackQuery;
-  if (!callback?.message || !ctx.chat || !(await ownerOrGroupAdmin(ctx))) {
-    return;
-  }
+  if (!callback?.message || !ctx.chat || !(await ownerOrGroupAdmin(ctx))) return;
 
   await ctx.answerCallbackQuery();
   const keyboard = new InlineKeyboard()
@@ -382,9 +387,7 @@ async function askClear(ctx: BotContext) {
 
 async function clearTriggers(ctx: BotContext) {
   const callback = ctx.callbackQuery;
-  if (!callback?.message || !ctx.chat || !(await ownerOrGroupAdmin(ctx))) {
-    return;
-  }
+  if (!callback?.message || !ctx.chat || !(await ownerOrGroupAdmin(ctx))) return;
 
   await saveBuckets(ctx, {
     gifIds: null,
@@ -406,9 +409,7 @@ async function clearTriggers(ctx: BotContext) {
 
 async function cancelClear(ctx: BotContext) {
   const callback = ctx.callbackQuery;
-  if (!callback?.message || !ctx.chat || !(await ownerOrGroupAdmin(ctx))) {
-    return;
-  }
+  if (!callback?.message || !ctx.chat || !(await ownerOrGroupAdmin(ctx))) return;
 
   await ctx.answerCallbackQuery();
   return await ctx.editRichMessage({
@@ -419,7 +420,10 @@ async function cancelClear(ctx: BotContext) {
   });
 }
 
-const GROUP_SCOPES = [{ type: "all_group_chats" as const }, { type: "all_chat_administrators" as const }];
+const GROUP_SCOPES = [
+  { type: "all_group_chats" as const },
+  { type: "all_chat_administrators" as const },
+];
 
 export const triggerHandlers: CommandHandler[] = [
   {

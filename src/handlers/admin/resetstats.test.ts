@@ -41,7 +41,9 @@ describe("reset statistics cancellation", () => {
 
     await resetStatsCallbacks[1]!.handler(ctx);
 
-    expect(answerCallbackQuery).toHaveBeenCalledOnce();
-    expect(editRichMessage).toHaveBeenCalledOnce();
+    expect(answerCallbackQuery).toHaveBeenCalledExactlyOnceWith();
+    expect(editRichMessage).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ text: "cmd_resetstats_cancelled" }),
+    );
   });
 });
