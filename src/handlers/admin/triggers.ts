@@ -2,11 +2,11 @@ import type { Message } from "grammy/types";
 
 import { GrammyError, InlineKeyboard } from "grammy";
 
+import type { schema } from "@/db";
 import type { CallbackQueryHandler, CommandHandler } from "@/handlers";
 import type { BotContext } from "@/lib/bot";
 import type { GroupPatch } from "@/lib/utils";
 
-import type { schema } from "@/db";
 import { isAdmin } from "@/lib/bot";
 import { getLegacyMediaId, getSendableMediaIds, matchesStoredMediaId } from "@/lib/file-id/storage";
 import { saveGroup } from "@/lib/utils";
@@ -15,7 +15,9 @@ const MAX_PER_KIND = 3;
 const BUCKETS = ["gifIds", "stickerIds", "unclownGifIds", "unclownStickerIds"] as const;
 
 type Bucket = (typeof BUCKETS)[number];
+
 type Action = "clown" | "unclown";
+
 type MediaKind = "animation" | "sticker";
 
 interface Media {
@@ -105,13 +107,7 @@ interface MediaUpdateInput {
   legacyId: string | null;
 }
 
-function updatedMediaLists({
-  action,
-  media,
-  clownIds,
-  unclownIds,
-  legacyId,
-}: MediaUpdateInput): MediaLists {
+function updatedMediaLists({ action, media, clownIds, unclownIds, legacyId }: MediaUpdateInput): MediaLists {
   const matches = (id: string) => matchesStoredMediaId(id, media.fileId, legacyId);
   const add = (ids: string[]) => (hasMatch(ids, media.fileId, legacyId) ? ids : [...ids, media.fileId]);
   const remove = (ids: string[]) => ids.filter((id) => !matches(id));
@@ -200,7 +196,12 @@ async function promptTrigger(ctx: BotContext) {
   });
 }
 
-async function showMissingMedia(ctx: BotContext, message: NonNullable<BotContext["callbackQuery"]>["message"]) {
+interface CallbackMessageReference {
+  chat: { id: number };
+  message_id: number;
+}
+
+async function showMissingMedia(ctx: BotContext, message: CallbackMessageReference) {
   await ctx.answerCallbackQuery({
     text: ctx.t("trigger_missing_media"),
     show_alert: true,
@@ -375,6 +376,8 @@ async function deleteListedTrigger(ctx: BotContext) {
       options: { reply_markup: new InlineKeyboard() },
     });
   }
+
+  return undefined;
 }
 
 async function askClear(ctx: BotContext) {

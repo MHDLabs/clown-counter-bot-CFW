@@ -64,6 +64,7 @@ async function renderStats(
 
   if (rows.length === 0) {
     const text = ctx.t("cmd_stats_no_clown");
+
     if (message) {
       return await ctx.editRichMessage({
         chatId: message.chat.id,
@@ -72,6 +73,7 @@ async function renderStats(
         options: { reply_markup: new InlineKeyboard() },
       });
     }
+
     return await ctx.richReply(text);
   }
 
@@ -89,6 +91,7 @@ async function renderStats(
       options: { reply_markup: replyMarkup },
     });
   }
+
   return await ctx.richReply(text, { reply_markup: replyMarkup });
 }
 

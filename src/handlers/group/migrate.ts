@@ -175,6 +175,30 @@ function migrationStatements(ctx: BotContext, migration: GroupMigration, state: 
 
   const merged = mergeGroupSettings(source, destination, destinationName);
   const attempts = mergeCooldownAttempts(sourceAttempts, destinationAttempts);
+  const allowlistStatements =
+    sourceAllowlist.length > 0
+      ? ([
+          ctx.db.insert(schema.allowedGroups).values({ groupId: destinationId }).onConflictDoNothing(),
+          ctx.db.delete(schema.allowedGroups).where(eq(schema.allowedGroups.groupId, sourceId)),
+        ] as const)
+      : ([] as const);
+
+  const attemptStatements =
+    attempts.length > 0
+      ? ([
+          ctx.db
+            .insert(schema.clownCooldownAttempts)
+            .values(attempts.map((attempt) => ({ ...attempt, groupId: destinationId })))
+            .onConflictDoUpdate({
+              target: [schema.clownCooldownAttempts.groupId, schema.clownCooldownAttempts.voterId],
+              set: {
+                attempts: sql`max(${schema.clownCooldownAttempts.attempts}, excluded.attempts)`,
+                expiresAt: sql`max(${schema.clownCooldownAttempts.expiresAt}, excluded.expires_at)`,
+              },
+            }),
+        ] as const)
+      : ([] as const);
+
   const statements = [
     ctx.db
       .insert(schema.groups)
@@ -184,34 +208,11 @@ function migrationStatements(ctx: BotContext, migration: GroupMigration, state: 
         set: merged,
       }),
     ctx.db.update(schema.clownVotes).set({ groupId: destinationId }).where(eq(schema.clownVotes.groupId, sourceId)),
-  ];
-
-  if (sourceAllowlist.length > 0) {
-    statements.push(
-      ctx.db.insert(schema.allowedGroups).values({ groupId: destinationId }).onConflictDoNothing(),
-      ctx.db.delete(schema.allowedGroups).where(eq(schema.allowedGroups.groupId, sourceId)),
-    );
-  }
-
-  if (attempts.length > 0) {
-    statements.push(
-      ctx.db
-        .insert(schema.clownCooldownAttempts)
-        .values(attempts.map((attempt) => ({ ...attempt, groupId: destinationId })))
-        .onConflictDoUpdate({
-          target: [schema.clownCooldownAttempts.groupId, schema.clownCooldownAttempts.voterId],
-          set: {
-            attempts: sql`max(${schema.clownCooldownAttempts.attempts}, excluded.attempts)`,
-            expiresAt: sql`max(${schema.clownCooldownAttempts.expiresAt}, excluded.expires_at)`,
-          },
-        }),
-    );
-  }
-
-  statements.push(
+    ...allowlistStatements,
+    ...attemptStatements,
     ctx.db.delete(schema.clownCooldownAttempts).where(eq(schema.clownCooldownAttempts.groupId, sourceId)),
     ctx.db.delete(schema.groups).where(eq(schema.groups.id, sourceId)),
-  );
+  ] as const;
 
   return statements;
 }
@@ -236,6 +237,7 @@ export const migrateGroupHandler: MessageHandler = {
     if (ctx.msg?.migrate_to_chat_id === undefined && ctx.msg?.migrate_from_chat_id === undefined) {
       return;
     }
+
     await next();
   },
   handler: migrateGroup,
