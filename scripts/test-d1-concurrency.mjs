@@ -88,15 +88,67 @@ await command(
   `DELETE FROM clown_cooldown_attempts WHERE voter_id='${voter}' AND group_id IN ('${group}','${otherGroup}')`,
 );
 
-const dayStart = Math.floor(now / 86_400_000) * 86_400_000;
+/**
+ * @param {Date} date
+ * @param {string} timeZone
+ * @returns {{ year: number, month: number, day: number, hour: number, minute: number, second: number }}
+ */
+function localDateParts(date, timeZone) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+
+  const values = new Map(
+    parts.filter((part) => part.type !== "literal").map((part) => [part.type, Number(part.value)]),
+  );
+
+  return {
+    year: Number(values.get("year")),
+    month: Number(values.get("month")),
+    day: Number(values.get("day")),
+    hour: Number(values.get("hour")),
+    minute: Number(values.get("minute")),
+    second: Number(values.get("second")),
+  };
+}
+
+/** @param {number} instant @param {string} timeZone @returns {number} */
+function timezoneOffsetAt(instant, timeZone) {
+  const parts = localDateParts(new Date(instant), timeZone);
+  const localAsUtc = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second);
+  return localAsUtc - instant;
+}
+
+/** @param {Date} date @param {string} timeZone @returns {{ start: number, end: number }} */
+function dayBoundsInTimeZone(date, timeZone) {
+  const parts = localDateParts(date, timeZone);
+  const localMidnight = Date.UTC(parts.year, parts.month - 1, parts.day);
+  const nextLocalMidnight = Date.UTC(parts.year, parts.month - 1, parts.day + 1);
+
+  return {
+    start: localMidnight - timezoneOffsetAt(localMidnight, timeZone),
+    end: nextLocalMidnight - timezoneOffsetAt(nextLocalMidnight, timeZone),
+  };
+}
+
+const timeZone = "Asia/Tehran";
+const { start: dayStart, end: nextDayStart } = dayBoundsInTimeZone(new Date(now), timeZone);
+const { end: followingDayStart } = dayBoundsInTimeZone(new Date(nextDayStart), timeZone);
 
 /** @param {number} timestamp */
 const dailyInsert = (timestamp) => {
-  const start = Math.floor(timestamp / 86_400_000) * 86_400_000;
+  const { start, end } = dayBoundsInTimeZone(new Date(timestamp), timeZone);
   return `INSERT INTO clown_votes(group_id,voter_id,clown_id,voted_at,quantity)
     SELECT '${group}',NULL,'${clown}',${timestamp},5 WHERE NOT EXISTS (
       SELECT 1 FROM clown_votes WHERE group_id='${group}' AND voter_id IS NULL
-        AND voted_at >= ${start} AND voted_at < ${start + 86_400_000}
+        AND voted_at >= ${start} AND voted_at < ${end}
     )`;
 };
 
@@ -110,29 +162,29 @@ const countDaily = async (start, end) => {
   return response[0].results[0].total;
 };
 
-if ((await countDaily(dayStart, dayStart + 86_400_000)) !== 1)
+if ((await countDaily(dayStart, nextDayStart)) !== 1)
   throw new Error("Concurrent clown-of-the-day awards were not serialized");
-await command(dailyInsert(dayStart + 86_400_000));
-if ((await countDaily(dayStart + 86_400_000, dayStart + 172_800_000)) !== 1)
-  throw new Error("Clown-of-the-day did not reset at UTC midnight");
+await command(dailyInsert(nextDayStart));
+if ((await countDaily(nextDayStart, followingDayStart)) !== 1)
+  throw new Error("Clown-of-the-day did not reset at Tehran midnight");
 
 const aggregate = await command(`SELECT users.name, coalesce(sum(clown_votes.quantity),0) AS count
   FROM clown_votes LEFT JOIN users ON users.id=clown_votes.clown_id
   WHERE clown_votes.group_id='${group}' GROUP BY users.id ORDER BY coalesce(sum(clown_votes.quantity),0) DESC`);
 if (aggregate[0].results[0].count !== 12) throw new Error("Statistics aggregate returned an unexpected total");
-await command(`UPDATE groups SET reset_at=${dayStart + 86_400_000} WHERE id='${group}'`);
+await command(`UPDATE groups SET reset_at=${nextDayStart} WHERE id='${group}'`);
 const resetAggregate = await command(`SELECT coalesce(sum(quantity),0) AS count FROM clown_votes
-  WHERE group_id='${group}' AND voted_at >= ${dayStart + 86_400_000}`);
+  WHERE group_id='${group}' AND voted_at >= ${nextDayStart}`);
 if (resetAggregate[0].results[0].count !== 5) throw new Error("Statistics reset cutoff returned an unexpected total");
 
 await command(`INSERT INTO clown_votes(voter_id,clown_id,group_id,voted_at,quantity)
-  VALUES('${voter}','${clown}','${group}',${dayStart + 86_400_000 + 1_000},-2)`);
+  VALUES('${voter}','${clown}','${group}',${nextDayStart + 1_000},-2)`);
 const personalAggregate = await command(`SELECT
     coalesce(sum(quantity),0) AS score,
     coalesce(sum(case when quantity > 0 then quantity else 0 end),0) AS received,
     coalesce(-sum(case when quantity < 0 then quantity else 0 end),0) AS removed
   FROM clown_votes
-  WHERE group_id='${group}' AND clown_id='${clown}' AND voted_at >= ${dayStart + 86_400_000}`);
+  WHERE group_id='${group}' AND clown_id='${clown}' AND voted_at >= ${nextDayStart}`);
 const personalStats = personalAggregate[0].results[0];
 if (personalStats.score !== 3 || personalStats.received !== 5 || personalStats.removed !== 2)
   throw new Error("Personal statistics did not match current group period and vote direction");

@@ -7,6 +7,16 @@ import { isAdmin } from "@/lib/bot";
 const MIN_COOLDOWN = 0;
 const MAX_COOLDOWN = 60;
 
+export function parseCooldownMinutes(input: string): number | null {
+  const normalized = input
+    .replace(/[\u06f0-\u06f9]/g, (digit) => String(digit.charCodeAt(0) - 0x06f0))
+    .replace(/[\u0660-\u0669]/g, (digit) => String(digit.charCodeAt(0) - 0x0660));
+
+  if (!/^\d+$/.test(normalized)) return null;
+  const minutes = Number(normalized);
+  return Number.isSafeInteger(minutes) ? minutes : null;
+}
+
 async function setCooldown(ctx: BotContext) {
   const { msg } = ctx;
   if (!msg) return;
@@ -20,9 +30,9 @@ async function setCooldown(ctx: BotContext) {
     });
   }
 
-  const minutes = Number(args);
+  const minutes = parseCooldownMinutes(args);
 
-  if (Number.isNaN(minutes) || !Number.isInteger(minutes)) {
+  if (minutes === null) {
     return await ctx.richReply(ctx.t("cmd_setcooldown_invalid_number"), {
       reply_parameters: { message_id: msg.message_id, chat_id: msg.chat.id, allow_sending_without_reply: true },
     });

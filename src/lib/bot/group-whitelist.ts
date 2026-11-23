@@ -29,14 +29,22 @@ export async function isGroupAllowlisted(ctx: BotContext, groupId: string): Prom
 }
 
 export const groupWhitelistMiddleware: MiddlewareFn<BotContext> = async (ctx, next) => {
-  if (ctx.chat?.type !== "group" && ctx.chat?.type !== "supergroup") return await next();
+  if (ctx.chat?.type !== "group" && ctx.chat?.type !== "supergroup") {
+    return await next();
+  }
 
-  // Membership-change updates must be recorded even when the group is not yet allowlisted.
-  if ("my_chat_member" in ctx.update) return await next();
+  // Keep lifecycle updates flowing so membership and group-ID migrations can be recorded.
+  const isGroupMigration = ctx.msg?.migrate_to_chat_id !== undefined || ctx.msg?.migrate_from_chat_id !== undefined;
+
+  if ("my_chat_member" in ctx.update || isGroupMigration) {
+    return await next();
+  }
 
   try {
     if (!(await isGroupWhitelistEnabled(ctx))) return await next();
-    if (await isGroupAllowlisted(ctx, String(ctx.chat.id))) return await next();
+    if (await isGroupAllowlisted(ctx, String(ctx.chat.id))) {
+      return await next();
+    }
   } catch {
     // Fail closed and avoid leaking configuration or producing retrying Telegram webhook errors.
     console.warn("Group whitelist check failed; ignored group update.");

@@ -12,9 +12,9 @@ A Persian/English Telegram group bot for fun: clown voting, group statistics, cu
 - Add or remove clown votes with `/clown` and `/unclown`; reply to a member's message in a group.
 - Text and emoji triggers, including 🤡 and 😇.
 - Interactive Persian/English help with `/help` and language selection with `/language`.
-- Group statistics with `/stats`, personal statistics with `/mystats`, and clown of the day with `/clownoftheday`.
-- Per-group custom GIFs and stickers for clown and unclown actions.
-- Send saved group media with `/clowngifs` and `/clownstickers`.
+- Paginated group statistics (20 entries per page) with `/stats`, personal statistics with `/mystats`, and Tehran-day clown selection with `/clownoftheday`.
+- Per-group custom GIFs and stickers configured for clown or unclown actions with `/trigger`.
+- List, remove, or clear saved media with `/triggers`; use a saved item by replying to the target member with it.
 - Configurable vote cooldown and statistics reset for group admins.
 - Persian right-to-left messages and English translations.
 
@@ -29,21 +29,19 @@ A Persian/English Telegram group bot for fun: clown voting, group statistics, cu
 - `/unclown`: Decrease the replied member's clown score
 - `/stats`: Show group statistics
 - `/mystats`: Show your stats; reply to a member to view theirs
-- `/clownoftheday`: Pick the clown of the day
-- `/clowngifs`: Send the group's saved GIFs
-- `/clownstickers`: Send the group's saved stickers
+- `/clownoftheday`: Pick the clown of the Tehran calendar day
+- `/trigger`: Configure a GIF, animation, or sticker with interactive action buttons
+- `/triggers`: List, remove one, or clear all saved custom media
 - `/privacy`: Show privacy information
 - `/source`: Show the project source
 
 ### Group-admin commands
 
 - `/setcooldown <minutes>`: Set the vote cooldown, from 0 to 60 minutes
-- `/setgif` and `/removegif`: Add or remove a clown GIF by replying to it
-- `/setsticker` and `/removesticker`: Add or remove a clown sticker by replying to it
-- `/setunclowngif` and `/removeunclowngif`: Add or remove an unclown GIF
-- `/setunclownsticker` and `/removeunclownsticker`: Add or remove an unclown sticker
+- `/trigger`: Reply to a GIF, animation, or sticker, then choose whether it adds or removes a clown point.
+- `/triggers`: List saved media, remove individual entries, or clear all after confirmation. Up to three items per media type and action.
 - `/resetstats`: Start the group statistics reset flow
-  Reply to the target member's message when voting. To add or remove media, reply to the GIF or sticker with the corresponding command. Up to three media items of each type can be stored per group.
+  Reply to the target member's message when voting. To configure custom media, reply to the GIF or sticker with `/trigger`. Use `/triggers` to review or remove saved entries.
 
 ### Bot owner panel and group allowlist
 
@@ -184,7 +182,7 @@ Database migrations live in `drizzle/`. Use `pnpm db:migrate:prod` to apply pend
 - TypeScript, Fluent, Wrangler, and pnpm
 - GitHub Actions for validation and deployment of the upstream repository
 
-Telegram identifiers are stored as text to preserve their full numeric precision. Vote cooldown enforcement uses a conditional SQLite operation. The current architecture does not require KV or Durable Objects.
+Telegram user and group identifiers are stored as text to preserve their full numeric precision. When Telegram upgrades a basic group to a supergroup, the bot migrates votes, settings, media, allowlist membership, and cooldown state to the new chat ID. Vote cooldown enforcement uses a conditional SQLite operation. The current architecture does not require KV or Durable Objects.
 
 ## 🔐 Security
 

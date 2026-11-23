@@ -4,15 +4,16 @@ import type { BotCommandScope } from "grammy/types";
 import type { BotContext } from "@/lib/bot";
 
 import { groupMembershipHandler } from "./admin/group-membership";
-import { mediaHandlers } from "./admin/media";
 import { resetStatsCallbacks, resetStatsHandler } from "./admin/resetstats";
 import { setCooldownHandler } from "./admin/setcooldown";
 import { adminStatusCallbacks, adminStatusHandler, adminStatusHyphenAlias } from "./admin/status";
+import { triggerCallbacks, triggerHandlers } from "./admin/triggers";
 import { clownHandlers } from "./group/clown";
 import { clownMediaHandlers } from "./group/clown-media";
 import { clownOfTheDayHandler } from "./group/clownoftheday";
+import { migrateGroupHandler } from "./group/migrate";
 import { personalStatsHandler } from "./group/mystats";
-import { statsHandler } from "./group/stats";
+import { statsCallbacks, statsHandler } from "./group/stats";
 import { helpCallbacks, helpHandler } from "./static/help";
 import { languageCallbacks, languageHandler } from "./static/language";
 import { privacyHandler } from "./static/privacy";
@@ -70,12 +71,15 @@ export const handlers: Handler[] = [
   // Groups
   ...clownHandlers,
   ...clownMediaHandlers,
+  migrateGroupHandler,
   statsHandler,
+  ...statsCallbacks,
   personalStatsHandler,
   clownOfTheDayHandler,
 
   // Admins
-  ...mediaHandlers,
+  ...triggerHandlers,
+  ...triggerCallbacks,
   groupMembershipHandler,
   resetStatsHandler,
   ...resetStatsCallbacks,
