@@ -218,13 +218,18 @@ await command(`DELETE FROM webhook_updates WHERE update_id=${webhookUpdateId}`);
 const claimUpdate = `INSERT INTO webhook_updates(update_id,status,updated_at)
   VALUES(${webhookUpdateId},'processing',${now})
   ON CONFLICT(update_id) DO UPDATE SET status='processing',updated_at=excluded.updated_at
-  WHERE webhook_updates.status='processing' AND webhook_updates.updated_at<=${now - 30_000}`;
+  WHERE webhook_updates.status='processing' AND webhook_updates.updated_at<=${now - 30_000}
+  RETURNING update_id`;
 const claims = await Promise.all(Array.from({ length: 8 }, () => command(claimUpdate)));
-const successfulClaims = claims.reduce((total, result) => total + (result[0].meta.changes ?? 0), 0);
-if (successfulClaims !== 1) throw new Error("Concurrent webhook deliveries were not deduplicated");
+const successfulClaims = claims.reduce((total, result) => total + (result[0].results?.length ?? 0), 0);
+if (successfulClaims !== 1) {
+  throw new Error(`Concurrent webhook deliveries were not deduplicated (accepted claims: ${successfulClaims})`);
+}
 await command(`UPDATE webhook_updates SET status='processed',updated_at=${now} WHERE update_id=${webhookUpdateId}`);
 const repeatedClaim = await command(claimUpdate);
-if (repeatedClaim[0].meta.changes !== 0) throw new Error("A processed Telegram update was claimed a second time");
+if ((repeatedClaim[0].results?.length ?? 0) !== 0) {
+  throw new Error("A processed Telegram update was claimed a second time");
+}
 await command(`DELETE FROM webhook_updates WHERE update_id=${webhookUpdateId}`);
 
 console.log(
