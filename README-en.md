@@ -14,7 +14,7 @@ A Persian/English Telegram group bot for fun: clown voting, group statistics, cu
 - Interactive Persian/English help with `/help` and language selection with `/language`.
 - Paginated group statistics (20 entries per page) with `/stats`, personal statistics with `/mystats`, and Tehran-day clown selection with `/clownoftheday`.
 - Per-group custom GIFs and stickers configured for clown or unclown actions with `/trigger`.
-- List, remove, or clear saved media with `/triggers`; use a saved item by replying to the target member with it.
+- List, remove, or clear saved media with `/triggers`; clear-all also removes the preview messages sent by the bot.
 - Configurable vote cooldown and statistics reset for group admins.
 - Persian right-to-left messages and English translations.
 
@@ -41,13 +41,13 @@ A Persian/English Telegram group bot for fun: clown voting, group statistics, cu
 - `/trigger`: Reply to a GIF, animation, or sticker, then choose whether it adds or removes a clown point.
 - `/triggers`: List saved media, remove individual entries, or clear all after confirmation. Up to three items per media type and action.
 - `/resetstats`: Start the group statistics reset flow
-  Reply to the target member's message when voting. To configure custom media, reply to the GIF or sticker with `/trigger`. Use `/triggers` to review or remove saved entries.
+  Reply to the target member's message when voting. To configure custom media, reply to the GIF or sticker with `/trigger`; after choosing an action, the first selector closes and a fresh status selector opens. All interactive panels have a close button.
 
 ### Bot owner panel and group allowlist
 
-Put the bot owner's Telegram ID as the **first entry** in `BOT_ADMIN_IDS`; this ID is shown in public help and whitelist notices. Additional entries are trusted administrators. In a private chat with the bot, use `/admin_status`; Telegram only accepts letters, numbers, and underscores in registered command names, so the requested `/admin-status` spelling is also supported as a manually typed private alias. This is separate from Telegram group-admin status, and only IDs in `BOT_ADMIN_IDS` can use it.
+Put the bot owner's Telegram ID as the **first entry** in `BOT_ADMIN_IDS`; this ID is shown in the owner panel and whitelist notices. Additional entries are trusted administrators. In a private chat with the bot, use `/admin_status`; Telegram only accepts letters, numbers, and underscores in registered command names, so the requested `/admin-status` spelling is also supported as a manually typed private alias. This is separate from Telegram group-admin status, and only IDs in `BOT_ADMIN_IDS` can use it.
 
-The interactive panel shows registered/active group counts, distinct members with a positive net clown score, and paginated group and leaderboard views. It displays only group/member display names and net scores—not numeric member IDs, voters, or vote history. Whitelist mode is off by default. When enabled, each known active group outside the allowlist receives one deactivation notice with the owner ID, creator channel, and source link; after that, the bot ignores commands and messages in that group. Groups added to the allowlist become active again. Private chats remain available to everyone and public help shows the creator and owner details.
+The interactive panel shows registered/active group counts, distinct members with a positive net clown score, and paginated group and leaderboard views. It displays only group/member display names and net scores—not numeric member IDs, voters, or vote history. Whitelist mode is off by default. When enabled, each known active group outside the allowlist receives one deactivation notice with the owner ID, creator channel, and source link; after that, the bot ignores commands and messages in that group. Groups added to the allowlist become active again. Private chats remain available to everyone; the shared public messages use the original upstream wording.
 
 The list contains groups recorded in D1. Telegram membership updates will record new group additions from deployment onward, but Telegram's API does not expose a complete list of the bot's older chats; a pre-existing group may remain unknown until the bot receives an update or records data there.
 

@@ -19,6 +19,7 @@ import { languageCallbacks, languageHandler } from "./static/language";
 import { privacyHandler } from "./static/privacy";
 import { sourceHandler } from "./static/source";
 import { startHandler } from "./static/start";
+import { panelCloseHandler } from "./panel";
 
 export type Handler = CallbackQueryHandler | CommandHandler | MessageHandler | UpdateHandler;
 
@@ -67,6 +68,7 @@ export const handlers: Handler[] = [
   adminStatusHandler,
   adminStatusHyphenAlias,
   ...adminStatusCallbacks,
+  panelCloseHandler,
 
   // Groups
   ...clownHandlers,

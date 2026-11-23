@@ -5,8 +5,6 @@ import { InlineKeyboard } from "grammy";
 import type { CallbackQueryHandler, CommandHandler } from "@/handlers";
 import type { BotContext } from "@/lib/bot";
 
-import { CREATOR, getOwnerTelegramId } from "@/lib/creator";
-
 const scopes: BotCommandScope[] = [
   { type: "all_private_chats" },
   { type: "all_group_chats" },
@@ -33,6 +31,7 @@ function helpKeyboard(ctx: BotContext) {
     if (index % 2 === 1 && index < pageButtons.length - 1) keyboard.row();
   }
 
+  keyboard.row().text(ctx.t("panel_close"), "panel:close");
   return keyboard;
 }
 
@@ -98,20 +97,7 @@ function helpBlocks(ctx: BotContext, page: HelpPage) {
 }
 
 function richMessage(ctx: BotContext, page: HelpPage) {
-  const blocks = helpBlocks(ctx, page);
-  blocks.push(
-    { type: "divider" as const },
-    {
-      type: "paragraph" as const,
-      text: ctx.t("help_public_credits", {
-        creator: CREATOR.username,
-        owner_id: getOwnerTelegramId(ctx.botAdminIds),
-        channel: CREATOR.channel,
-        repository: CREATOR.repositoryUrl,
-      }),
-    },
-  );
-  return { blocks, is_rtl: ctx.locale === "fa" };
+  return { blocks: helpBlocks(ctx, page), is_rtl: ctx.locale === "fa" };
 }
 
 export const helpHandler: CommandHandler = {

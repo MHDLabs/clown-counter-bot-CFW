@@ -45,14 +45,6 @@ export function getData(ctx: BotContext): Data | null {
   };
 }
 
-export function randomMessage(
-  ctx: BotContext,
-  options: { key: string; variants: number; variables?: Record<string, number | string> },
-) {
-  const index = Math.floor(Math.random() * options.variants) + 1;
-  return ctx.t(`${options.key}_${index}`, options.variables);
-}
-
 async function cooldownState(ctx: BotContext, data: Data) {
   const group = await ctx.db.query.groups.findFirst({
     columns: { cooldown: true },
@@ -96,6 +88,7 @@ async function recordCooldownAttempt(ctx: BotContext, data: Data, expiresAt: num
 
 export async function respondToClownCooldown(ctx: BotContext, data: Data, expiresAt: number) {
   const { group, voter } = data;
+  const waitMin = Math.max(1, Math.ceil((expiresAt - Date.now()) / 60_000));
   const reply = (text: string) =>
     ctx.richReply(text, {
       reply_parameters: {
@@ -105,75 +98,47 @@ export async function respondToClownCooldown(ctx: BotContext, data: Data, expire
       },
     });
 
-  let responseKey = "cmd_clown_timeout_no_access";
-  let waitMin = 1;
-
   try {
     const member = await ctx.api.getChatMember(group.id, voter.id);
 
-    if (member.status === "creator") responseKey = "cmd_clown_timeout_owner";
-    else if (member.status === "administrator") responseKey = "cmd_clown_timeout_admin";
-    else if (member.status === "member") {
-      if (group.type !== "supergroup") {
-        responseKey = "cmd_clown_timeout_no_access";
-      } else if (expiresAt - Date.now() <= MIN_RESTRICTION_SECONDS * 1000) {
-        responseKey = "cmd_clown_wait";
-      } else {
-        const botMember = await ctx.api.getChatMember(group.id, ctx.meId);
+    if (
+      member.status === "member" &&
+      group.type === "supergroup" &&
+      expiresAt - Date.now() > MIN_RESTRICTION_SECONDS * 1000
+    ) {
+      const botMember = await ctx.api.getChatMember(group.id, ctx.meId);
 
-        if (botMember.status === "administrator" && botMember.can_restrict_members) {
-          await ctx.api.restrictChatMember(
-            group.id,
-            voter.id,
-            {
-              can_send_messages: false,
-              can_send_audios: false,
-              can_send_documents: false,
-              can_send_photos: false,
-              can_send_videos: false,
-              can_send_video_notes: false,
-              can_send_voice_notes: false,
-              can_send_polls: false,
-              can_send_other_messages: false,
-              can_add_web_page_previews: false,
-            },
-            { until_date: Math.floor(expiresAt / 1000), use_independent_chat_permissions: true },
-          );
-          responseKey = "cmd_clown_timeout_muted";
-          waitMin = Math.max(1, Math.ceil((expiresAt - Date.now()) / 60_000));
-        }
+      if (botMember.status === "administrator" && botMember.can_restrict_members) {
+        await ctx.api.restrictChatMember(
+          group.id,
+          voter.id,
+          {
+            can_send_messages: false,
+            can_send_audios: false,
+            can_send_documents: false,
+            can_send_photos: false,
+            can_send_videos: false,
+            can_send_video_notes: false,
+            can_send_voice_notes: false,
+            can_send_polls: false,
+            can_send_other_messages: false,
+            can_add_web_page_previews: false,
+          },
+          { until_date: Math.floor(expiresAt / 1000), use_independent_chat_permissions: true },
+        );
       }
     }
   } catch {
-    responseKey = "cmd_clown_timeout_no_access";
+    // A missing moderation permission must not prevent the canonical cooldown response.
   }
 
-  return await reply(
-    randomMessage(ctx, {
-      key: responseKey,
-      variants: 2,
-      variables: { waitMin },
-    }),
-  );
+  return await reply(ctx.t("cmd_clown_wait", { waitMin }));
 }
 
 async function voteHandler(ctx: BotContext, quantity: -1 | 1) {
   const data = getData(ctx);
 
-  if (!data) {
-    if (ctx.message) {
-      const prefix = quantity > 0 ? "cmd_clown_usage" : "cmd_unclown_usage";
-      return await ctx.richReply(randomMessage(ctx, { key: prefix, variants: 3 }), {
-        reply_parameters: {
-          message_id: ctx.message.message_id,
-          chat_id: ctx.message.chat.id,
-          allow_sending_without_reply: true,
-        },
-      });
-    }
-
-    return;
-  }
+  if (!data) return;
 
   const { messageId, group, voter, clown } = data;
   const prefix = quantity > 0 ? "cmd_clown" : "cmd_unclown";
@@ -182,7 +147,7 @@ async function voteHandler(ctx: BotContext, quantity: -1 | 1) {
       reply_parameters: { message_id: messageId, chat_id: group.id, allow_sending_without_reply: true },
     });
   const rejection = clown.id === ctx.meId ? "is_me" : clown.is_bot ? "is_bot" : voter.id === clown.id ? "is_you" : null;
-  if (rejection) return await reply(randomMessage(ctx, { key: `${prefix}_${rejection}`, variants: 3 }));
+  if (rejection) return await reply(ctx.t(`${prefix}_${rejection}`));
 
   await Promise.all([
     ctx.db
@@ -217,14 +182,10 @@ async function voteHandler(ctx: BotContext, quantity: -1 | 1) {
       if (attempts >= 2) return await respondToClownCooldown(ctx, data, state.expiresAt);
     }
 
-    return await reply(
-      randomMessage(ctx, { key: `${prefix}_wait`, variants: 4, variables: { waitMin: Math.max(1, state.waitMin) } }),
-    );
+    return await reply(ctx.t(`${prefix}_wait`, { waitMin: Math.max(1, state.waitMin) }));
   }
 
-  return await reply(
-    randomMessage(ctx, { key: prefix, variants: 4, variables: { clown: clown.name, voter: voter.name } }),
-  );
+  return await reply(ctx.t(prefix, { clown: clown.name, voter: voter.name }));
 }
 
 function clownHandler(ctx: BotContext) {

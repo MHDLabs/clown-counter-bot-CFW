@@ -210,7 +210,9 @@ function homeKeyboard(ctx: BotContext, enabled: boolean): InlineKeyboard {
     .row()
     .text(ctx.t(enabled ? "admin_button_disable_whitelist" : "admin_button_enable_whitelist"), "admin:toggle-whitelist")
     .row()
-    .url(ctx.t("admin_button_creator_channel"), CREATOR.channelUrl);
+    .url(ctx.t("admin_button_creator_channel"), CREATOR.channelUrl)
+    .row()
+    .text(ctx.t("panel_close"), "panel:close");
 }
 
 async function renderHome(ctx: BotContext, message?: MessageRef, notice?: string) {
@@ -321,7 +323,7 @@ async function renderGroups(
   }
 
   addPager({ keyboard, ctx, page, pages, target: (next) => `admin:groups:${next}` });
-  keyboard.text(ctx.t("admin_button_home"), "admin:home");
+  keyboard.text(ctx.t("admin_button_home"), "admin:home").row().text(ctx.t("panel_close"), "panel:close");
   return await sendOrEdit(ctx, { message, blocks, keyboard });
 }
 
@@ -378,7 +380,12 @@ function groupDetailKeyboard(
   if (page > 0) keyboard.text(ctx.t("admin_button_previous"), `admin:group:${groupId}:${page - 1}`);
   if (page + 1 < pages) keyboard.text(ctx.t("admin_button_next"), `admin:group:${groupId}:${page + 1}`);
   if (page > 0 || page + 1 < pages) keyboard.row();
-  keyboard.text(ctx.t("admin_button_groups"), "admin:groups:0").row().text(ctx.t("admin_button_home"), "admin:home");
+  keyboard
+    .text(ctx.t("admin_button_groups"), "admin:groups:0")
+    .row()
+    .text(ctx.t("admin_button_home"), "admin:home")
+    .row()
+    .text(ctx.t("panel_close"), "panel:close");
   return keyboard;
 }
 
@@ -403,7 +410,9 @@ async function renderGroup(
       keyboard: new InlineKeyboard()
         .text(ctx.t("admin_button_groups"), "admin:groups:0")
         .row()
-        .text(ctx.t("admin_button_home"), "admin:home"),
+        .text(ctx.t("admin_button_home"), "admin:home")
+        .row()
+        .text(ctx.t("panel_close"), "panel:close"),
     });
   }
 
@@ -626,7 +635,12 @@ async function handleOwnerCallback(ctx: BotContext): Promise<void> {
       chatId: message.chat.id,
       messageId: message.message_id,
       text: ctx.t("admin_error"),
-      options: { reply_markup: new InlineKeyboard().text(ctx.t("admin_button_home"), "admin:home") },
+      options: {
+        reply_markup: new InlineKeyboard()
+          .text(ctx.t("admin_button_home"), "admin:home")
+          .row()
+          .text(ctx.t("panel_close"), "panel:close"),
+      },
     });
   }
 }
