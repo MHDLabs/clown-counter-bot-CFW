@@ -20,6 +20,7 @@ function createContext(options: { deleteFails?: boolean; markupFails?: boolean }
     from: { id: 123, is_bot: false, first_name: "Member" },
     botAdminIds: new Set(["424242"]),
     getAuthor: vi.fn().mockResolvedValue({ status: "administrator" }),
+    t: (key: string) => key,
     answerCallbackQuery,
     api: { deleteMessage, editMessageReplyMarkup },
   } as unknown as BotContext;

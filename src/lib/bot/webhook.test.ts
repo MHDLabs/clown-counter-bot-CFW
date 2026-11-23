@@ -36,6 +36,14 @@ function testDatabase(
       return query;
     },
     run: async () => ({ meta: { changes: 1 } }),
+    update: () => ({
+      set: () => ({
+        where: async () => undefined,
+      }),
+    }),
+    delete: () => ({
+      where: async () => undefined,
+    }),
   } as unknown as AppDb;
 }
 
@@ -86,6 +94,15 @@ function statsTestDatabase(): AppDb {
       selectIndex += 1;
       return createQuery(result);
     },
+    run: async () => ({ meta: { changes: 1 } }),
+    update: () => ({
+      set: () => ({
+        where: async () => undefined,
+      }),
+    }),
+    delete: () => ({
+      where: async () => undefined,
+    }),
   } as unknown as AppDb;
 }
 
