@@ -1,6 +1,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 
-const token = process.env.BOT_TOKEN;
+// eslint-disable-next-line dot-notation -- TypeScript requires bracket access for ProcessEnv index signatures.
+const token = process.env["BOT_TOKEN"];
 if (!token) throw new Error("BOT_TOKEN is required.");
 
 const response = await fetch(`https://api.telegram.org/bot${token}/getMe`, {

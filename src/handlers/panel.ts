@@ -35,7 +35,7 @@ export const adminPanelCloseHandler: CallbackQueryHandler = {
     if (!(await isAdmin(ctx))) {
       return await ctx.answerCallbackQuery({ text: ctx.t("cmd_admin_only"), show_alert: true });
     }
-    await closeMessage(ctx);
+    return await closeMessage(ctx);
   },
 };
 
@@ -47,6 +47,6 @@ export const ownerPanelCloseHandler: CallbackQueryHandler = {
     if (!allowed) {
       return await ctx.answerCallbackQuery({ text: ctx.t("cmd_admin_only"), show_alert: true });
     }
-    await closeMessage(ctx);
+    return await closeMessage(ctx);
   },
 };
