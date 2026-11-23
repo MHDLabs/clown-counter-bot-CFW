@@ -27,6 +27,11 @@ jobs:
           node-version: 22
       - run: corepack enable
       - run: pnpm install --frozen-lockfile
+      - name: Capture canonical formatting diff
+        shell: bash
+        run: |
+          pnpm exec prettier --write src/lib/bot/webhook.test.ts
+          git diff -- src/lib/bot/webhook.test.ts
       - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm typecheck
