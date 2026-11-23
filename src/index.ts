@@ -34,42 +34,55 @@ function parseBotAdminIds(input: string | undefined): ReadonlySet<string> {
   );
 }
 
+async function readinessResponse(env: Env): Promise<Response> {
+  try {
+    const result = await env.DB.prepare("SELECT 1 AS ok").first<{ ok: number }>();
+    if (result?.ok === 1) return Response.json({ ok: true, database: true });
+  } catch (error) {
+    console.error(`Readiness check failed (${safeErrorSummary(error)}).`);
+  }
+
+  return Response.json({ ok: false, database: false }, { status: 503 });
+}
+
+async function handleWebhook(request: Request, env: Env): Promise<Response> {
+  const token = env.BOT_TOKEN;
+  if (!token || !/^\d{6,}:[\w-]+$/.test(token)) return new Response("Service unavailable", { status: 503 });
+
+  const secret = await webhookSecret(token);
+  if (request.headers.get("X-Telegram-Bot-Api-Secret-Token") !== secret) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
+  try {
+    const database = createDb(env.DB);
+    const botId = Number(token.slice(0, token.indexOf(":")));
+    const bot = new Bot(token, {
+      botId,
+      botUsername: env.BOT_USERNAME ?? "MHDLabs_clownbot",
+      database,
+      botAdminIds: parseBotAdminIds(env.BOT_ADMIN_IDS),
+      plugins: [i18nMiddleware(), replyToMiddleware],
+    });
+    bot.registerHandlers(...handlers);
+
+    return await webhookCallback(bot, "cloudflare-mod", { secretToken: secret })(request);
+  } catch (error) {
+    // Log safe error metadata only; never expose request bodies, credentials, headers, or upstream objects.
+    console.error(`Webhook processing failed (${safeErrorSummary(error)}).`);
+    return new Response("Webhook processing failed", { status: 500 });
+  }
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     if (url.pathname === "/health" && request.method === "GET") return Response.json({ ok: true });
-    if (url.pathname === "/ready" && request.method === "GET") {
-      try {
-        const result = await env.DB.prepare("SELECT 1 AS ok").first<{ ok: number }>();
-        if (result?.ok === 1) return Response.json({ ok: true, database: true });
-      } catch (error) {
-        console.error(`Readiness check failed (${safeErrorSummary(error)}).`);
-      }
-      return Response.json({ ok: false, database: false }, { status: 503 });
-    }
-    if (url.pathname !== "/telegram" || request.method !== "POST") return new Response("Not found", { status: 404 });
-    const token = env.BOT_TOKEN;
-    if (!token || !/^\d{6,}:[\w-]+$/.test(token)) return new Response("Service unavailable", { status: 503 });
-    const secret = await webhookSecret(token);
-    if (request.headers.get("X-Telegram-Bot-Api-Secret-Token") !== secret)
-      return new Response("Unauthorized", { status: 401 });
 
-    try {
-      const database = createDb(env.DB);
-      const botId = Number(token.slice(0, token.indexOf(":")));
-      const bot = new Bot(token, {
-        botId,
-        botUsername: env.BOT_USERNAME ?? "MHDLabs_clownbot",
-        database,
-        botAdminIds: parseBotAdminIds(env.BOT_ADMIN_IDS),
-        plugins: [i18nMiddleware(), replyToMiddleware],
-      });
-      bot.registerHandlers(...handlers);
-      return await webhookCallback(bot, "cloudflare-mod", { secretToken: secret })(request);
-    } catch (error) {
-      // Log safe error metadata only; never expose request bodies, credentials, headers, or upstream objects.
-      console.error(`Webhook processing failed (${safeErrorSummary(error)})`);
-      return new Response("Webhook processing failed", { status: 500 });
-    }
+    if (url.pathname === "/ready" && request.method === "GET") return readinessResponse(env);
+
+    if (url.pathname === "/telegram" && request.method === "POST") return handleWebhook(request, env);
+
+    return new Response("Not found", { status: 404 });
   },
 };

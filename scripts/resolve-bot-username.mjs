@@ -1,6 +1,6 @@
 import { readFile, writeFile } from "node:fs/promises";
 
-const token = process.env["BOT_TOKEN"];
+const token = process.env.BOT_TOKEN;
 if (!token) throw new Error("BOT_TOKEN is required.");
 
 const response = await fetch(`https://api.telegram.org/bot${token}/getMe`, {
@@ -14,7 +14,7 @@ if (!response.ok || result.ok !== true) {
 }
 
 const username = result.result?.username;
-if (typeof username !== "string" || !/^[A-Za-z0-9_]{5,32}$/.test(username)) {
+if (typeof username !== "string" || !/^[a-z]\w{4,31}$/i.test(username)) {
   throw new Error("Telegram did not return a valid bot username.");
 }
 

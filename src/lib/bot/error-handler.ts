@@ -1,10 +1,11 @@
 import type { BotError } from "grammy";
+
 import { GrammyError, HttpError } from "grammy";
 
 import type { BotContext } from ".";
 
 export function errorHandler(err: BotError<BotContext>): never {
-  const error = err.error;
+  const { error } = err;
   const kind =
     error instanceof GrammyError
       ? "TelegramApiError"

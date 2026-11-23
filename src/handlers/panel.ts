@@ -1,7 +1,8 @@
 import { InlineKeyboard } from "grammy";
 
 import type { CallbackQueryHandler } from "@/handlers";
-import { isAdmin, type BotContext } from "@/lib/bot";
+import type { BotContext } from "@/lib/bot";
+import { isAdmin } from "@/lib/bot";
 
 async function closeMessage(ctx: BotContext): Promise<void> {
   const message = ctx.callbackQuery?.message;

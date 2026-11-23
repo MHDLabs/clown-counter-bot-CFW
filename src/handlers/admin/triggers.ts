@@ -161,23 +161,24 @@ async function withMediaWriteLock<T>(ctx: BotContext, operation: () => Promise<T
 
   const key = `trigger-lock:${ctx.chat.id}`;
   const lockValue = `${Date.now() + MEDIA_LOCK_MS}:${crypto.randomUUID()}`;
-  let acquired = false;
-
-  for (let attempt = 0; attempt < 4; attempt += 1) {
+  const acquire = async (attempt: number): Promise<boolean> => {
     const now = Date.now();
     const result = await ctx.db.run(sql`
       INSERT INTO bot_settings (key, value) VALUES (${key}, ${lockValue})
       ON CONFLICT(key) DO UPDATE SET value = excluded.value
       WHERE CAST(substr(bot_settings.value, 1, instr(bot_settings.value, ':') - 1) AS INTEGER) <= ${now}
     `);
-    if (result.meta.changes > 0) {
-      acquired = true;
-      break;
-    }
-    await new Promise((resolve) => setTimeout(resolve, 20 * (attempt + 1)));
-  }
+    if (result.meta.changes > 0) return true;
+    if (attempt >= 3) return false;
 
-  if (!acquired) throw new Error("Custom media settings are busy; retry the action.");
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 20 * (attempt + 1));
+    });
+
+    return await acquire(attempt + 1);
+  };
+
+  if (!(await acquire(0))) throw new Error("Custom media settings are busy; retry the action.");
 
   try {
     return await operation();
@@ -474,6 +475,7 @@ async function listTriggers(ctx: BotContext) {
 
   for (const entry of entries) {
     const keyboard = new InlineKeyboard();
+    // eslint-disable-next-line no-await-in-loop -- Build each item's callback before sending its paired preview.
     const callbackData = await deleteCallback(entry.bucket, entry.fileId);
     keyboard.text(ctx.t("triggers_btn_delete", { action: entry.action }), callbackData);
     keyboard.text(ctx.t("panel_close"), "panel:close:admin");
@@ -481,6 +483,7 @@ async function listTriggers(ctx: BotContext) {
     // eslint-disable-next-line no-await-in-loop -- Keep each preview beside its matching action button.
     const sent = await sendTriggerPreview(ctx, entry, keyboard);
     // Persist each successful send immediately so a later failure cannot orphan earlier previews.
+    // eslint-disable-next-line no-await-in-loop -- Persist each sent preview before attempting the next one.
     await appendTrackedPreviewId(ctx, trackingKey, sent.message_id);
   }
 
@@ -496,7 +499,7 @@ async function listTriggers(ctx: BotContext) {
 
 async function deleteListedTrigger(ctx: BotContext) {
   const callback = ctx.callbackQuery;
-  const match = /^trigger:delete:(gifIds|stickerIds|unclownGifIds|unclownStickerIds):([a-f0-9]{24})$/.exec(
+  const match = /^trigger:delete:(gifIds|stickerIds|unclownGifIds|unclownStickerIds):([0-9a-f]{24})$/.exec(
     callback?.data ?? "",
   );
 
@@ -632,7 +635,7 @@ export const triggerCallbacks: CallbackQueryHandler[] = [
   },
   {
     kind: "callback_query",
-    data: /^trigger:delete:(gifIds|stickerIds|unclownGifIds|unclownStickerIds):([a-f0-9]{24})$/,
+    data: /^trigger:delete:(gifIds|stickerIds|unclownGifIds|unclownStickerIds):([0-9a-f]{24})$/,
     handler: deleteListedTrigger,
   },
   {
