@@ -14,7 +14,15 @@ function contextFor(update: {
     onConflictDoUpdate: vi.fn().mockResolvedValue(row),
   }));
   const insert = vi.fn(() => ({ values }));
-  const ctx = { myChatMember: update, db: { insert } } as unknown as BotContext;
+  const select = vi.fn(() => {
+    const query = {
+      from: () => query,
+      where: () => query,
+      limit: vi.fn().mockResolvedValue([]),
+    };
+    return query;
+  });
+  const ctx = { myChatMember: update, db: { insert, select } } as unknown as BotContext;
   return { ctx, insert, values };
 }
 

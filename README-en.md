@@ -45,9 +45,9 @@ A Persian/English Telegram group bot for fun: clown voting, group statistics, cu
 
 ### Bot owner panel and group allowlist
 
-Set your own Telegram numeric ID in `BOT_ADMIN_IDS`. In a private chat with the bot, use `/admin_status`; Telegram only accepts letters, numbers, and underscores in registered command names, so the requested `/admin-status` spelling is also supported as a manually typed private alias. This is separate from Telegram group-admin status, and only IDs in `BOT_ADMIN_IDS` can use it.
+Put the bot owner's Telegram ID as the **first entry** in `BOT_ADMIN_IDS`; this ID is shown in public help and whitelist notices. Additional entries are trusted administrators. In a private chat with the bot, use `/admin_status`; Telegram only accepts letters, numbers, and underscores in registered command names, so the requested `/admin-status` spelling is also supported as a manually typed private alias. This is separate from Telegram group-admin status, and only IDs in `BOT_ADMIN_IDS` can use it.
 
-The interactive panel shows registered/active group counts, distinct members with a positive net clown score, and paginated group and leaderboard views. It displays only group/member display names and net scores—not numeric member IDs, voters, or vote history. Whitelist mode is off by default. When enabled, the bot silently ignores all group updates outside the allowlist; the owner's private chat remains available. Add or remove groups from the panel.
+The interactive panel shows registered/active group counts, distinct members with a positive net clown score, and paginated group and leaderboard views. It displays only group/member display names and net scores—not numeric member IDs, voters, or vote history. Whitelist mode is off by default. When enabled, each known active group outside the allowlist receives one deactivation notice with the owner ID, creator channel, and source link; after that, the bot ignores commands and messages in that group. Groups added to the allowlist become active again. Private chats remain available to everyone and public help shows the creator and owner details.
 
 The list contains groups recorded in D1. Telegram membership updates will record new group additions from deployment onward, but Telegram's API does not expose a complete list of the bot's older chats; a pre-existing group may remain unknown until the bot receives an update or records data there.
 
@@ -113,7 +113,7 @@ By default, Telegram group administrators can manage the bot's group settings. T
 }
 ```
 
-This allowlist grants bot-owner access to the private panel and bot/group settings, but not Cloudflare or D1 access. Only include trusted IDs, and do not put personal IDs in the public template.
+This allowlist grants bot-owner access to the private panel and bot/group settings, but not Cloudflare or D1 access. Only include trusted IDs, and do not put personal IDs in the public template. The first ID in this list is displayed as the bot owner's ID.
 
 ### 4. Add the bot token and deploy
 

@@ -17,6 +17,9 @@ function createContext(options: {
   fail?: boolean;
 }) {
   const selectedTables: unknown[] = [];
+  const noticeValues = new Map<string, string>();
+  let settingsReads = 0;
+
   const db = {
     select: () => {
       let table: unknown;
@@ -29,21 +32,55 @@ function createContext(options: {
         where: () => query,
         limit: async () => {
           if (options.fail) throw new Error("D1 unavailable");
-          if (table === schema.botSettings) return options.enabled ? [{ value: "enabled" }] : [];
+
+          if (table === schema.botSettings) {
+            const read = settingsReads % 3;
+            settingsReads += 1;
+            if (read === 0) return options.enabled ? [{ value: "enabled" }] : [{ value: "disabled" }];
+            if (read === 1) return [{ value: "100" }];
+            const value = noticeValues.get("group_whitelist_notice:-100123");
+            return value ? [{ value }] : [];
+          }
+
           if (table === schema.allowedGroups) return options.allowed ? [{ groupId: "-100123" }] : [];
           return [];
         },
       };
       return query;
     },
+    insert: (table: unknown) => {
+      let row: Record<string, string> = {};
+      const query = {
+        values: (value: Record<string, string>) => {
+          row = value;
+          return query;
+        },
+        onConflictDoUpdate: async () => row,
+        onConflictDoNothing: () => query,
+        returning: async () => {
+          if (table !== schema.botSettings) return [];
+          if (noticeValues.has(row["key"] ?? "")) return [];
+          noticeValues.set(row["key"] ?? "", row["value"] ?? "");
+          return [{ key: row["key"] }];
+        },
+      };
+      return query;
+    },
   } as unknown as AppDb;
+
+  const sendMessage = vi.fn().mockResolvedValue({});
   const ctx = {
-    chat: { id: -100123, type: options.chatType ?? "supergroup" },
+    chat: { id: -100123, type: options.chatType ?? "supergroup", title: "Test group" },
     update: options.membershipUpdate ? { my_chat_member: {} } : { message: {} },
     msg: options.migrationUpdate ? { migrate_to_chat_id: -100999 } : undefined,
     db,
+    api: { sendMessage },
+    botAdminIds: new Set(["424242"]),
+    locale: "fa",
+    t: (key: string) => key,
   } as unknown as BotContext;
-  return { ctx, selectedTables };
+
+  return { ctx, selectedTables, sendMessage };
 }
 
 describe("group allowlist middleware", () => {
@@ -57,22 +94,43 @@ describe("group allowlist middleware", () => {
     expect(selectedTables).toEqual([schema.botSettings]);
   });
 
-  it("silently stops an unlisted group before handlers run", async () => {
-    const { ctx } = createContext({ enabled: true, allowed: false });
+  it("sends one disabled notice and stops updates in an unlisted group", async () => {
+    const { ctx, sendMessage } = createContext({ enabled: true, allowed: false });
     const next = vi.fn().mockResolvedValue(undefined);
 
     await groupWhitelistMiddleware(ctx, next);
 
     expect(next).not.toHaveBeenCalled();
+    expect(sendMessage).toHaveBeenCalledExactlyOnceWith(
+      -100123,
+      "whitelist_group_disabled",
+      expect.objectContaining({ reply_markup: expect.any(Object) }),
+    );
+  });
+
+  it("does not repeat the notice for later updates in the same whitelist generation", async () => {
+    const { ctx, sendMessage } = createContext({ enabled: true, allowed: false });
+    const next = vi.fn().mockResolvedValue(undefined);
+
+    await groupWhitelistMiddleware(ctx, next);
+    await groupWhitelistMiddleware(ctx, next);
+
+    expect(sendMessage).toHaveBeenCalledExactlyOnceWith(
+      -100123,
+      "whitelist_group_disabled",
+      expect.objectContaining({ reply_markup: expect.any(Object) }),
+    );
+    expect(next).not.toHaveBeenCalled();
   });
 
   it("passes a listed group when whitelist mode is enabled", async () => {
-    const { ctx } = createContext({ enabled: true, allowed: true });
+    const { ctx, sendMessage } = createContext({ enabled: true, allowed: true });
     const next = vi.fn().mockResolvedValue(undefined);
 
     await groupWhitelistMiddleware(ctx, next);
 
     expect(next).toHaveBeenCalledExactlyOnceWith();
+    expect(sendMessage).not.toHaveBeenCalled();
   });
 
   it("does not gate private chats", async () => {
@@ -106,10 +164,11 @@ describe("group allowlist middleware", () => {
   });
 
   it("fails closed if D1 cannot verify allowlist access", async () => {
-    const { ctx } = createContext({ enabled: true, fail: true });
+    const { ctx, sendMessage } = createContext({ enabled: true, fail: true });
     const next = vi.fn().mockResolvedValue(undefined);
 
     await expect(groupWhitelistMiddleware(ctx, next)).resolves.toBeUndefined();
     expect(next).not.toHaveBeenCalled();
+    expect(sendMessage).not.toHaveBeenCalled();
   });
 });

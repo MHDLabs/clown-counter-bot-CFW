@@ -1,11 +1,11 @@
 cmd_start = Welcome! I keep playful clown scores for your group. Add me to a group and reply to someone's message with /clown or 🤡 to vote. You can also reply with “clown” or 🤡 if I can see group messages. Change your language with /language. Privacy: /privacy | Source: /source
 cmd_privacy = Privacy: I store only the group and user IDs/names needed for scores, vote times, group settings, custom media identifiers, and your selected language. Cooldown attempt counts have the same expiry as their cooldown and expired rows are cleaned up during later cooldown processing. I do not keep a message history. Configured bot administrators can privately view registered group names and current net clown scores; the panel does not show numeric member IDs, voters, or vote history. The source is available with /source.
 cmd_source =
-    The Clown Counter source code is publicly viewable at the repository below. The repository currently has no LICENSE file, so reuse, modification, and redistribution terms have not been specified.
-
-    Repository: https://github.com/MHDLabs/clown-counter-bot-CFW
-cmd_creator_credit = Project creator: { $creator }
+    🧩 The project source is publicly available on GitHub:
+    https://github.com/MHDLabs/clown-counter-bot-CFW
+cmd_creator_credit = Project creator: { $creator } — owner ID: { $owner_id }
 cmd_creator_channel = Creator channel
+cmd_source_repository = View project source
 cmd_language_prompt = Choose the language for your bot replies:
 cmd_language_persian = فارسی
 cmd_language_english = English
@@ -201,7 +201,7 @@ admin_button_remove_group = Remove from whitelist
 admin_button_enable_whitelist = Enable whitelist
 admin_button_disable_whitelist = Disable whitelist
 admin_button_creator_channel = Creator channel
-admin_creator = Project creator: { $creator }
+admin_creator = Project creator: { $creator } — bot owner ID: { $owner_id }
 admin_whitelist_needs_group = Add at least one group to the allowlist before enabling whitelist mode.
 admin_group_not_active = Telegram confirms that the bot is no longer a member of this group. Re-add it before allowlisting.
 admin_error = The panel could not be loaded. Please try again shortly.
@@ -237,3 +237,24 @@ trigger_saved = Custom media action saved.
 trigger_removed = Custom media action removed.
 trigger_not_found = This saved media trigger could not be found.
 trigger_stale_media = A saved { $media } could not be previewed. You can still remove it with the button.
+
+
+# Public owner identity and whitelist notices
+help_public_credits =
+    Project creator: { $creator }
+    Bot owner ID: { $owner_id }
+    Creator channel: { $channel }
+    Project source: { $repository }
+
+whitelist_group_disabled =
+    🚫 The bot has been disabled in this group.
+
+    Group whitelist mode is enabled, but this group is not on the allowlist. The bot will not process commands or group messages here. The bot owner can restore access by adding this group to the allowlist.
+
+    Project creator: { $creator }
+    Bot owner ID: { $owner_id }
+    Creator channel: { $channel }
+    Project source: { $repository }
+
+whitelist_button_source = 🧩 Project source
+whitelist_button_channel = 📢 Creator channel
