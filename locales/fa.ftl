@@ -34,13 +34,8 @@ cmd_privacy =
     ❤️ امیدواریم که در حین استفاده از این ربات حسابی بهتون خوش بگذره!
 
 cmd_source =
-    🧩 سورس‌کد پروژه به‌صورت عمومی در GitHub در دسترس است.
-
-    👨‍💻 سازنده: { $creator }
-    🆔 شناسه مالک ربات: { $owner_id }
-    📢 کانال سازنده: { $channel }
-    🔗 مخزن پروژه: { $repository }
-
+    🧩 سورس‌کد پروژه به‌صورت عمومی در GitHub در دسترس است:
+    https://github.com/MHDLabs/clown-counter-bot-CFW
 cmd_creator_credit = سازندهٔ پروژه: { $creator } — شناسه مالک: { $owner_id }
 cmd_creator_channel = کانال سازنده
 cmd_source_repository = مشاهده سورس پروژه

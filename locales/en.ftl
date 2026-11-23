@@ -1,12 +1,8 @@
 cmd_start = Welcome! I keep playful clown scores for your group. Add me to a group and reply to someone's message with /clown or 🤡 to vote. You can also reply with “clown” or 🤡 if I can see group messages. Change your language with /language. Privacy: /privacy | Source: /source
 cmd_privacy = Privacy: I store only the group and user IDs/names needed for scores, vote times, group settings, custom media identifiers, and your selected language. Cooldown attempt counts have the same expiry as their cooldown and expired rows are cleaned up during later cooldown processing. I do not keep a message history. Configured bot administrators can privately view registered group names and current net clown scores; the panel does not show numeric member IDs, voters, or vote history. The source is available with /source.
 cmd_source =
-    🧩 The project source is publicly available on GitHub.
-
-    Project creator: { $creator }
-    Bot owner ID: { $owner_id }
-    Creator channel: { $channel }
-    Repository: { $repository }
+    🧩 The project source is publicly available on GitHub:
+    https://github.com/MHDLabs/clown-counter-bot-CFW
 cmd_creator_credit = Project creator: { $creator } — owner ID: { $owner_id }
 cmd_creator_channel = Creator channel
 cmd_source_repository = View project source

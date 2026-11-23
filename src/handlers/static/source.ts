@@ -13,14 +13,15 @@ export const sourceHandler: CommandHandler = {
     const keyboard = new InlineKeyboard()
       .url(ctx.t("cmd_source_repository"), CREATOR.repositoryUrl)
       .url(ctx.t("cmd_creator_channel"), CREATOR.channelUrl);
+    const credits = ctx.t("help_public_credits", {
+      creator: CREATOR.username,
+      owner_id: getOwnerTelegramId(ctx.botAdminIds),
+      channel: CREATOR.channel,
+      repository: CREATOR.repositoryUrl,
+    });
 
     return await ctx.richReply(
-      ctx.t("cmd_source", {
-        creator: CREATOR.username,
-        owner_id: getOwnerTelegramId(ctx.botAdminIds),
-        channel: CREATOR.channel,
-        repository: CREATOR.repositoryUrl,
-      }),
+      `${ctx.t("cmd_source")}\n\n${credits}`,
       {
         reply_markup: keyboard,
         ...(ctx.msg
