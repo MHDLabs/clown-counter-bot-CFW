@@ -27,9 +27,6 @@ jobs:
           node-version: 22
       - run: corepack enable
       - run: pnpm install --frozen-lockfile
-      - name: Print formatted trigger handler
-        shell: bash
-        run: pnpm exec prettier src/handlers/admin/triggers.ts | base64 -w0
       - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm typecheck

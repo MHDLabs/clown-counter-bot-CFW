@@ -270,9 +270,7 @@ async function applyChoice(ctx: BotContext) {
 
 export function removeStoredMediaIds(values: readonly string[], legacyId: string): string[] {
   return values.filter((storedId) => {
-    const isLegacyId =
-      storedId.length > 0 &&
-      [...storedId].every((character) => character >= "0" && character <= "9");
+    const isLegacyId = storedId.length > 0 && [...storedId].every((character) => character >= "0" && character <= "9");
     const storedLegacyId = isLegacyId ? storedId : getLegacyMediaId(storedId);
     return storedLegacyId !== legacyId;
   });
