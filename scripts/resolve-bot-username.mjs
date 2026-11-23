@@ -1,26 +1,15 @@
-import { readFile, writeFile } from "node:fs/promises";
-
-const token = process.env["BOT_TOKEN"];
-if (!token) throw new Error("BOT_TOKEN is required.");
-
-const response = await fetch(`https://api.telegram.org/bot${token}/getMe`, {
-  method: "POST",
-  headers: { "content-type": "application/json" },
-  body: "{}",
-});
-const result = await response.json();
-if (!response.ok || result.ok !== true) {
-  throw new Error(`Telegram getMe failed: ${result.description ?? response.status}`);
-}
-
-const username = result.result?.username;
-if (typeof username !== "string" || !/^[A-Za-z0-9_]{5,32}$/.test(username)) {
-  throw new Error("Telegram did not return a valid bot username.");
-}
-
-const path = new URL("../wrangler.jsonc", import.meta.url);
-const config = await readFile(path, "utf8");
-const pattern = /("BOT_USERNAME"\s*:\s*")[^"]*(")/;
-if (!pattern.test(config)) throw new Error("Could not find BOT_USERNAME in wrangler.jsonc.");
-await writeFile(path, config.replace(pattern, (_match, before, after) => `${before}${username}${after}`));
-console.log(`Resolved Telegram bot username: @${username}`);
+ÛMº×]·O_uó~5×;ÛVZ[\ÜÈXY[KÜ]Q[HHÛHÙNËÜÛZ\Ù\ÈÂÛÛÝÚÙ[HØÙ\ÜË[ÈÕÕÒÑSNÂY
+]ÚÙ[HÝÈ]È\ÜÕÕÒÑS\È\]Z\YNÂÛÛÝ\ÜÛÙHH]ØZ]]Ú
+ÎËØ\K[YÜ[KÜËØÝ	ÝÚÙ[KÙÙ]YXÂY]ÙÔÕXY\ÎÈÛÛ[]\H\XØ][ÛÚÛÛKÙNßHJNÂÛÛÝ\Ý[H]ØZ]\ÜÛÙKÛÛ
+NÂY
+\\ÜÛÙKÚÈ\Ý[ÚÈOOHYJHÂÝÈ]È\Ü[YÜ[HÙ]YHZ[Y	Ü\Ý[\ØÜ\[ÛÏÈ\ÜÛÙKÝ]\ßX
+NÂBÛÛÝ\Ù\[YHH\Ý[\Ý[Ë\Ù\[YNÂY
+\[Ù\Ù\[YHOOHÝ[ÈK×ÐKVK^NW×^ÍKÌIË\Ý
+\Ù\[YJJHÂÝÈ]È\Ü[YÜ[HYÝ]\H[YÝ\Ù\[YKNÂBÛÛÝ]H]ÈT
+ÝÜ[Û\ÛÛÈ[\ÜY]K\
+NÂÛÛÝÛÛYÈH]ØZ]XY[J]]NÂÛÛÝ]\HÊÕÕTÑTSQHÊÊV×JKÎÂY
+\]\\Ý
+ÛÛYÊJHÝÈ]È\ÜÛÝ[Ý[ÕÕTÑTSQH[Ü[Û\ÛÛËNÂ]ØZ]Ü]Q[J]ÛÛYË\XÙJ]\
+ÛX]ÚYÜKY\HO	ØYÜ_IÝ\Ù\[Y_IØY\X
+KNÂÛÛÛÛKÙÊ\ÛÛY[YÜ[HÝ\Ù\[YN	Ý\Ù\[Y_X
+NÂ´Û­uÛtõ÷_7ã]yç}½

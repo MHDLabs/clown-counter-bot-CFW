@@ -1,391 +1,1 @@
-{
-  "version": "6",
-  "dialect": "sqlite",
-  "id": "d2e6a8f4-98ad-4a22-b377-1d6ea1130a05",
-  "prevId": "922931fe-df63-4b38-ace4-b98466552a3b",
-  "tables": {
-    "allowed_groups": {
-      "name": "allowed_groups",
-      "columns": {
-        "group_id": {
-          "name": "group_id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "allowed_groups_group_id_groups_id_fk": {
-          "name": "allowed_groups_group_id_groups_id_fk",
-          "tableFrom": "allowed_groups",
-          "tableTo": "groups",
-          "columnsFrom": [
-            "group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "bot_settings": {
-      "name": "bot_settings",
-      "columns": {
-        "key": {
-          "name": "key",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "value": {
-          "name": "value",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "clown_cooldown_attempts": {
-      "name": "clown_cooldown_attempts",
-      "columns": {
-        "group_id": {
-          "name": "group_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "voter_id": {
-          "name": "voter_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "attempts": {
-          "name": "attempts",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
-        "expires_at": {
-          "name": "expires_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "clown_cooldown_attempts_expires_at_idx": {
-          "name": "clown_cooldown_attempts_expires_at_idx",
-          "columns": [
-            "expires_at"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {
-        "clown_cooldown_attempts_group_id_voter_id_pk": {
-          "columns": [
-            "group_id",
-            "voter_id"
-          ],
-          "name": "clown_cooldown_attempts_group_id_voter_id_pk"
-        }
-      },
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "clown_votes": {
-      "name": "clown_votes",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "integer",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": true
-        },
-        "voter_id": {
-          "name": "voter_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "clown_id": {
-          "name": "clown_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "group_id": {
-          "name": "group_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "voted_at": {
-          "name": "voted_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "quantity": {
-          "name": "quantity",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 1
-        }
-      },
-      "indexes": {
-        "clown_votes_group_voter_idx": {
-          "name": "clown_votes_group_voter_idx",
-          "columns": [
-            "group_id",
-            "voter_id",
-            "voted_at"
-          ],
-          "isUnique": false
-        },
-        "clown_votes_group_idx": {
-          "name": "clown_votes_group_idx",
-          "columns": [
-            "group_id"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {
-        "clown_votes_voter_id_users_id_fk": {
-          "name": "clown_votes_voter_id_users_id_fk",
-          "tableFrom": "clown_votes",
-          "tableTo": "users",
-          "columnsFrom": [
-            "voter_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "clown_votes_clown_id_users_id_fk": {
-          "name": "clown_votes_clown_id_users_id_fk",
-          "tableFrom": "clown_votes",
-          "tableTo": "users",
-          "columnsFrom": [
-            "clown_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "clown_votes_group_id_groups_id_fk": {
-          "name": "clown_votes_group_id_groups_id_fk",
-          "tableFrom": "clown_votes",
-          "tableTo": "groups",
-          "columnsFrom": [
-            "group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "groups": {
-      "name": "groups",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "bot_member_status": {
-          "name": "bot_member_status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "gif_ids": {
-          "name": "gif_ids",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "sticker_ids": {
-          "name": "sticker_ids",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "unclown_gif_ids": {
-          "name": "unclown_gif_ids",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "unclown_sticker_ids": {
-          "name": "unclown_sticker_ids",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "reset_at": {
-          "name": "reset_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "cooldown": {
-          "name": "cooldown",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "user_preferences": {
-      "name": "user_preferences",
-      "columns": {
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "locale": {
-          "name": "locale",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'fa'"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "users": {
-      "name": "users",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "webhook_updates": {
-      "name": "webhook_updates",
-      "columns": {
-        "update_id": {
-          "name": "update_id",
-          "type": "integer",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    }
-  },
-  "views": {},
-  "enums": {},
-  "_meta": {
-    "schemas": {},
-    "tables": {},
-    "columns": {}
-  },
-  "internal": {
-    "indexes": {}
-  }
-}
+ÛMº×]·O_uó~4×xß^Â\Ú[ÛX[XÝÜ[]HYMNNNYMLXÍÍËLYXLLLÌLH]YLLÌYKYËMÎXXÙMXNMLLØX\ÈÂ[ÝÙYÙÜÝ\ÈÂ[YH[ÝÙYÙÜÝ\ÈÛÛ[[ÈÂÜÝ\ÚYÂ[YHÜÝ\ÚY\H^[X\RÙ^HYKÝ[YK]]Ú[Ü[Y[[ÙBBK[^\ÈßKÜZYÛÙ^\ÈÂ[ÝÙYÙÜÝ\×ÙÜÝ\ÚYÙÜÝ\×ÚYÙÈÂ[YH[ÝÙYÙÜÝ\×ÙÜÝ\ÚYÙÜÝ\×ÚYÙÈXQÛH[ÝÙYÙÜÝ\ÈXUÈÜÝ\ÈÛÛ[[ÑÛHÈÜÝ\ÚYKÛÛ[[ÕÈÈYKÛ[]HÈXÝ[ÛÛ\]HÈXÝ[ÛBKÛÛ\ÜÚ]T[X\RÙ^\ÈßK[\]YPÛÛÝZ[ÈßKÚXÚÐÛÛÝZ[ÈßBKÝÜÙ][ÜÈÂ[YHÝÜÙ][ÜÈÛÛ[[ÈÂÙ^HÂ[YHÙ^H\H^[X\RÙ^HYKÝ[YK]]Ú[Ü[Y[[ÙBK[YHÂ[YH[YH\H^[X\RÙ^H[ÙKÝ[YK]]Ú[Ü[Y[[ÙBBK[^\ÈßKÜZYÛÙ^\ÈßKÛÛ\ÜÚ]T[X\RÙ^\ÈßK[\]YPÛÛÝZ[ÈßKÚXÚÐÛÛÝZ[ÈßBKÛÝÛØÛÛÛÝÛØ][\ÈÂ[YHÛÝÛØÛÛÛÝÛØ][\ÈÛÛ[[ÈÂÜÝ\ÚYÂ[YHÜÝ\ÚY\H^[X\RÙ^H[ÙKÝ[YK]]Ú[Ü[Y[[ÙBKÝ\ÚYÂ[YHÝ\ÚY\H^[X\RÙ^H[ÙKÝ[YK]]Ú[Ü[Y[[ÙBK][\ÈÂ[YH][\È\H[YÙ\[X\RÙ^H[ÙKÝ[YK]]Ú[Ü[Y[[ÙKY][K^\\×Ø]Â[YH^\\×Ø]\H[YÙ\[X\RÙ^H[ÙKÝ[YK]]Ú[Ü[Y[[ÙBBK[^\ÈÂÛÝÛØÛÛÛÝÛØ][\×Ù^\\×Ø]ÚYÂ[YHÛÝÛØÛÛÛÝÛØ][\×Ù^\\×Ø]ÚYÛÛ[[ÈÈ^\\×Ø]K\Õ[\]YH[ÙBBKÜZYÛÙ^\ÈßKÛÛ\ÜÚ]T[X\RÙ^\ÈÂÛÝÛØÛÛÛÝÛØ][\×ÙÜÝ\ÚYÝÝ\ÚYÜÈÂÛÛ[[ÈÈÜÝ\ÚYÝ\ÚYK[YHÛÝÛØÛÛÛÝÛØ][\×ÙÜÝ\ÚYÝÝ\ÚYÜÈBK[\]YPÛÛÝZ[ÈßKÚXÚÐÛÛÝZ[ÈßBKÛÝÛÝÝ\ÈÂ[YHÛÝÛÝÝ\ÈÛÛ[[ÈÂYÂ[YHY\H[YÙ\[X\RÙ^HYKÝ[YK]]Ú[Ü[Y[YBKÝ\ÚYÂ[YHÝ\ÚY\H^[X\RÙ^H[ÙKÝ[[ÙK]]Ú[Ü[Y[[ÙBKÛÝÛÚYÂ[YHÛÝÛÚY\H^[X\RÙ^H[ÙKÝ[YK]]Ú[Ü[Y[[ÙBKÜÝ\ÚYÂ[YHÜÝ\ÚY\H^[X\RÙ^H[ÙKÝ[YK]]Ú[Ü[Y[[ÙBKÝYØ]Â[YHÝYØ]\H[YÙ\[X\RÙ^H[ÙKÝ[YK]]Ú[Ü[Y[[ÙBK]X[]HÂ[YH]X[]H\H[YÙ\[X\RÙ^H[ÙKÝ[YK]]Ú[Ü[Y[[ÙKY][BBK[^\ÈÂÛÝÛÝÝ\×ÙÜÝ\ÝÝ\ÚYÂ[YHÛÝÛÝÝ\×ÙÜÝ\ÝÝ\ÚYÛÛ[[ÈÈÜÝ\ÚYÝ\ÚYÝYØ]K\Õ[\]YH[ÙBKÛÝÛÝÝ\×ÙÜÝ\ÚYÂ[YHÛÝÛÝÝ\×ÙÜÝ\ÚYÛÛ[[ÈÈÜÝ\ÚYK\Õ[\]YH[ÙBBKÜZYÛÙ^\ÈÂÛÝÛÝÝ\×ÝÝ\ÚYÝ\Ù\×ÚYÙÈÂ[YHÛÝÛÝÝ\×ÝÝ\ÚYÝ\Ù\×ÚYÙÈXQÛHÛÝÛÝÝ\ÈXUÈ\Ù\ÈÛÛ[[ÑÛHÈÝ\ÚYKÛÛ[[ÕÈÈYKÛ[]HÈXÝ[ÛÛ\]HÈXÝ[ÛKÛÝÛÝÝ\×ØÛÝÛÚYÝ\Ù\×ÚYÙÈÂ[YHÛÝÛÝÝ\×ØÛÝÛÚYÝ\Ù\×ÚYÙÈXQÛHÛÝÛÝÝ\ÈXUÈ\Ù\ÈÛÛ[[ÑÛHÈÛÝÛÚYKÛÛ[[ÕÈÈYKÛ[]HÈXÝ[ÛÛ\]HÈXÝ[ÛKÛÝÛÝÝ\×ÙÜÝ\ÚYÙÜÝ\×ÚYÙÈÂ[YHÛÝÛÝÝ\×ÙÜÝ\ÚYÙÜÝ\×ÚYÙÈXQÛHÛÝÛÝÝ\ÈXUÈÜÝ\ÈÛÛ[[ÑÛHÈÜÝ\ÚYKÛÛ[[ÕÈÈYKÛ[]HÈXÝ[ÛÛ\]HÈXÝ[ÛBKÛÛ\ÜÚ]T[X\RÙ^\ÈßK[\]YPÛÛÝZ[ÈßKÚXÚÐÛÛÝZ[ÈßBKÜÝ\ÈÂ[YHÜÝ\ÈÛÛ[[ÈÂYÂ[YHY\H^[X\RÙ^HYKÝ[YK]]Ú[Ü[Y[[ÙBK[YHÂ[YH[YH\H^[X\RÙ^H[ÙKÝ[[ÙK]]Ú[Ü[Y[[ÙBKÝÛY[X\ÜÝ]\ÈÂ[YHÝÛY[X\ÜÝ]\È\H^[X\RÙ^H[ÙKÝ[[ÙK]]Ú[Ü[Y[[ÙBKÚYÚYÈÂ[YHÚYÚYÈ\H^[X\RÙ^H[ÙKÝ[[ÙK]]Ú[Ü[Y[[ÙBKÝXÚÙ\ÚYÈÂ[YHÝXÚÙ\ÚYÈ\H^[X\RÙ^H[ÙKÝ[[ÙK]]Ú[Ü[Y[[ÙBK[ÛÝÛÙÚYÚYÈÂ[YH[ÛÝÛÙÚYÚYÈ\H^[X\RÙ^H[ÙKÝ[[ÙK]]Ú[Ü[Y[[ÙBK[ÛÝÛÜÝXÚÙ\ÚYÈÂ[YH[ÛÝÛÜÝXÚÙ\ÚYÈ\H^[X\RÙ^H[ÙKÝ[[ÙK]]Ú[Ü[Y[[ÙBK\Ù]Ø]Â[YH\Ù]Ø]\H[YÙ\[X\RÙ^H[ÙKÝ[[ÙK]]Ú[Ü[Y[[ÙBKÛÛÛÝÛÂ[YHÛÛÛÝÛ\H[YÙ\[X\RÙ^H[ÙKÝ[[ÙK]]Ú[Ü[Y[[ÙBBK[^\ÈßKÜZYÛÙ^\ÈßKÛÛ\ÜÚ]T[X\RÙ^\ÈßK[\]YPÛÛÝZ[ÈßKÚXÚÐÛÛÝZ[ÈßBK\Ù\ÜY\[Ù\ÈÂ[YH\Ù\ÜY\[Ù\ÈÛÛ[[ÈÂ\Ù\ÚYÂ[YH\Ù\ÚY\H^[X\RÙ^HYKÝ[YK]]Ú[Ü[Y[[ÙBKØØ[HÂ[YHØØ[H\H^[X\RÙ^H[ÙKÝ[YK]]Ú[Ü[Y[[ÙKY][ÙIÈBK[^\ÈßKÜZYÛÙ^\ÈßKÛÛ\ÜÚ]T[X\RÙ^\ÈßK[\]YPÛÛÝZ[ÈßKÚXÚÐÛÛÝZ[ÈßBK\Ù\ÈÂ[YH\Ù\ÈÛÛ[[ÈÂYÂ[YHY\H^[X\RÙ^HYKÝ[YK]]Ú[Ü[Y[[ÙBK[YHÂ[YH[YH\H^[X\RÙ^H[ÙKÝ[YK]]Ú[Ü[Y[[ÙBBK[^\ÈßKÜZYÛÙ^\ÈßKÛÛ\ÜÚ]T[X\RÙ^\ÈßK[\]YPÛÛÝZ[ÈßKÚXÚÐÛÛÝZ[ÈßBKÙXÛÚ×Ý\]\ÈÂ[YHÙXÛÚ×Ý\]\ÈÛÛ[[ÈÂ\]WÚYÂ[YH\]WÚY\H[YÙ\[X\RÙ^HYKÝ[YK]]Ú[Ü[Y[[ÙBKÝ]\ÈÂ[YHÝ]\È\H^[X\RÙ^H[ÙKÝ[YK]]Ú[Ü[Y[[ÙBK\]YØ]Â[YH\]YØ]\H[YÙ\[X\RÙ^H[ÙKÝ[YK]]Ú[Ü[Y[[ÙBBK[^\ÈßKÜZYÛÙ^\ÈßKÛÛ\ÜÚ]T[X\RÙ^\ÈßK[\]YPÛÛÝZ[ÈßKÚXÚÐÛÛÝZ[ÈßBBKY]ÜÈßK[[\ÈßKÛY]HÂØÚ[X\ÈßKX\ÈßKÛÛ[[ÈßBK[\[Â[^\ÈßBBB¶Ónµ×mÓ×Ý|ßußo6å

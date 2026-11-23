@@ -1,52 +1,21 @@
-import { InlineKeyboard } from "grammy";
+ÛMº×]·O_uó~5×Í=÷ÖZ[\ÜÈ[[RÙ^XØ\HÛHÜ[[^HÂ[\Ü\HÈØ[XÚÔ]Y\R[\HÛHÚ[\ÈÂ[\ÜÈ\ÐYZ[\HÝÛÛ^HÛHÛXØÝÂ\Þ[È[Ý[ÛÛÜÙSY\ÜØYÙJÝÝÛÛ^
+NÛZ\ÙOÚYÂÛÛÝY\ÜØYÙHHÝØ[XÚÔ]Y\OËY\ÜØYÙNÂ]ØZ]Ý[ÝÙ\Ø[XÚÔ]Y\J
+NÂY
+[Y\ÜØYÙJH]\ÂHÂ]ØZ]Ý\K[]SY\ÜØYÙJY\ÜØYÙKÚ]YY\ÜØYÙKY\ÜØYÙWÚY
+NÂHØ]ÚÂHÂ]ØZ]Ý\KY]Y\ÜØYÙT\SX\Ý\
+Y\ÜØYÙKÚ]YY\ÜØYÙKY\ÜØYÙWÚYÂ\WÛX\Ý\]È[[RÙ^XØ\
 
-import type { CallbackQueryHandler } from "@/handlers";
-import { isAdmin, type BotContext } from "@/lib/bot";
-
-async function closeMessage(ctx: BotContext): Promise<void> {
-  const message = ctx.callbackQuery?.message;
-  await ctx.answerCallbackQuery();
-  if (!message) return;
-
-  try {
-    await ctx.api.deleteMessage(message.chat.id, message.message_id);
-  } catch {
-    try {
-      await ctx.api.editMessageReplyMarkup(message.chat.id, message.message_id, {
-        reply_markup: new InlineKeyboard(),
-      });
-    } catch {
-      // The panel may already have been deleted or become inaccessible.
-    }
-  }
-}
-
-export const panelCloseHandler: CallbackQueryHandler = {
-  kind: "callback_query",
-  data: "panel:close",
-  handler: closeMessage,
-};
-
-export const adminPanelCloseHandler: CallbackQueryHandler = {
-  kind: "callback_query",
-  data: "panel:close:admin",
-  handler: async (ctx) => {
-    if (!(await isAdmin(ctx))) {
-      return await ctx.answerCallbackQuery({ text: ctx.t("cmd_admin_only"), show_alert: true });
-    }
-    await closeMessage(ctx);
-  },
-};
-
-export const ownerPanelCloseHandler: CallbackQueryHandler = {
-  kind: "callback_query",
-  data: "panel:close:owner",
-  handler: async (ctx) => {
-    const allowed =
-      ctx.chat?.type === "private" && Boolean(ctx.from && ctx.botAdminIds?.has(String(ctx.from.id)));
-    if (!allowed) {
-      return await ctx.answerCallbackQuery({ text: ctx.t("cmd_admin_only"), show_alert: true });
-    }
-    await closeMessage(ctx);
-  },
-};
+KJNÂHØ]ÚÂËÈH[[X^H[XYH]HY[[]YÜXÛÛYH[XØÙ\ÜÚXKBBB^ÜÛÛÝ[[ÛÜÙR[\Ø[XÚÔ]Y\R[\HÂÚ[Ø[XÚ×Ü]Y\H]N[[ÛÜÙH[\ÛÜÙSY\ÜØYÙKNÂ^ÜÛÛÝYZ[[[ÛÜÙR[\Ø[XÚÔ]Y\R[\HÂÚ[Ø[XÚ×Ü]Y\H]N[[ÛÜÙNYZ[[\\Þ[È
+Ý
+HOÂY
+J]ØZ]\ÐYZ[Ý
+JJHÂ]\]ØZ]Ý[ÝÙ\Ø[XÚÔ]Y\JÈ^Ý
+ÛYØYZ[ÛÛHKÚÝ×Ø[\YHJNÂB]ØZ]ÛÜÙSY\ÜØYÙJÝ
+NÂKNÂ^ÜÛÛÝÝÛ\[[ÛÜÙR[\Ø[XÚÔ]Y\R[\HÂÚ[Ø[XÚ×Ü]Y\H]N[[ÛÜÙNÝÛ\[\\Þ[È
+Ý
+HOÂÛÛÝ[ÝÙYHÝÚ]Ë\HOOH]]H	ÛÛX[ÝÛH	ÝÝYZ[YÏË\ÊÝ[ÊÝÛKY
+JJNÂY
+X[ÝÙY
+HÂ]\]ØZ]Ý[ÝÙ\Ø[XÚÔ]Y\JÈ^Ý
+ÛYØYZ[ÛÛHKÚÝ×Ø[\YHJNÂB]ØZ]ÛÜÙSY\ÜØYÙJÝ
+NÂKNÂ´Û­uÛtõ÷_7ã]´çm6

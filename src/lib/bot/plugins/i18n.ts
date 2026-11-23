@@ -1,54 +1,24 @@
-import type { FluentVariable } from "@fluent/bundle";
+ÛMº×]·O_uó~5ÛnºßvZ[\Ü\HÈY[\XXHHÛHY[Ø[HÂ[\ÜÈY[[KY[\ÛÝ\ÙHHÛHY[Ø[HÂ[\Ü\HÈÝÛÛ^HÛHÂ[\Ü[ÛHËËËÛØØ[\ËÙ[Â[\ÜHÛHËËËÛØØ[\ËÙKÂ^Ü[\XÙHLN]ÜÂØØ[N[HÂ
+Ù^NÝ[Ë\XX\ÏÎXÛÜÝ[ËY[\XXOHOÝ[ÎÂBÛÛÝ[\ÈHÂN]ÈY[[JHK[]ÈY[[J[KNÂ[\ËKY\ÛÝ\ÙJ]ÈY[\ÛÝ\ÙJJJNÂ[\Ë[Y\ÛÝ\ÙJ]ÈY[\ÛÝ\ÙJ[JNÂ^Ü[Ý[Û[Û]JØØ[N[HÙ^NÝ[Ë\XX\ÏÎXÛÜÝ[ËY[\XXONÝ[ÈÂÛÛÝY\ÜØYÙHH[\ÖÛØØ[WKÙ]Y\ÜØYÙJÙ^JNÂÛÛÝ^HY\ÜØYÙOË[YHÈ[\ÖÛØØ[WKÜX]]\Y\ÜØYÙK[YK\XX\ÊHÙ^NÂY
+ØØ[HOOHHH]\^ÂÛÛÝYÚÓYX\ÈHLÂ]\^Ü]
+BX\
 
-import { FluentBundle, FluentResource } from "@fluent/bundle";
+[JHO	ÜYÚÓYX\ßIÛ[K\XÙJ×LËË_X
+BÚ[NÂB^Ü[Ý[ÛLNZY]Ø\J
+HÂ]\\Þ[È
+ÝÝÛÛ^^
 
-import type { BotContext } from "..";
+HOÛZ\ÙOÚYHOÂ]Ø]YÈØØ[N[HH[Y[YÂY
+ÝÛJHÂHÂØ]YH]ØZ]Ý]Y\K\Ù\Y\[Ù\Ë[\Ý
+ÂÛÛ[[ÎÈØØ[NYHKÚ\N
+Y[ËÜ\]ÜÊHOÜ\]ÜË\JY[Ë\Ù\YÝ[ÊÝÛOËY
+JKJNÂHØ]Ú
+\ÜHÂÛÛÝX\ÛÛH\Ü[Ý[Ù[Ù\ÜÈ\Ü[YH[ÛÝÛ\ÜÂÛÛÛÛKØ\ÛÝ[ÝØY[ÝXYÙHY\[ÙHÜ\]H	ØÝ\]K\]WÚYH
+	ÜX\ÛÛJNÈ\Ú[ÈH[YÜ[H[ÝXYÙK
+NÂBBÛÛÝØØ[HHØ]YËØØ[HÏÈ
+ÝÛOË[ÝXYÙWØÛÙOËÓÝÙ\Ø\ÙJ
+KÝ\ÕÚ]
+[HÈ[HNÂËÈXXÚ\]H\È]ÈÝÛÛÛ^ÈHØ]YY\[ÙH\ÈÛHÛÝÛY\H]ØZ]YHÛÚÝ\ËÈ\Û[Y\ØXK[^[[H\]Z\KX]ÛZXË]\]\ÂÝØØ[HHØØ[NÂÝH
+Ù^K\XX\ÊHO[Û]JØØ[KÙ^K\XX\ÊNÂ]ØZ]^
 
-import en from "../../../../locales/en.ftl";
-import fa from "../../../../locales/fa.ftl";
-
-export interface I18nFlavor {
-  locale: "en" | "fa";
-  t: (key: string, variables?: Record<string, FluentVariable>) => string;
-}
-const bundles = {
-  fa: new FluentBundle("fa"),
-  en: new FluentBundle("en"),
-};
-bundles.fa.addResource(new FluentResource(fa));
-bundles.en.addResource(new FluentResource(en));
-
-export function translate(locale: "en" | "fa", key: string, variables?: Record<string, FluentVariable>): string {
-  const message = bundles[locale].getMessage(key);
-  const text = message?.value ? bundles[locale].formatPattern(message.value, variables) : key;
-  if (locale !== "fa") return text;
-
-  const rightToLeftMark = "\u200f";
-  return text
-    .split("\n")
-    .map((line) => `${rightToLeftMark}${line.replace(/^\u200f+/, "")}`)
-    .join("\n");
-}
-
-export function i18nMiddleware() {
-  return async (ctx: BotContext, next: () => Promise<void>) => {
-    let saved: { locale: "en" | "fa" } | undefined;
-    if (ctx.from) {
-      try {
-        saved = await ctx.db.query.userPreferences.findFirst({
-          columns: { locale: true },
-          where: (fields, operators) => operators.eq(fields.userId, String(ctx.from?.id)),
-        });
-      } catch (error) {
-        const reason = error instanceof Error ? error.name : "UnknownError";
-        console.warn(`Could not load language preference for update ${ctx.update.update_id} (${reason}); using the Telegram language.`);
-      }
-    }
-    const locale = saved?.locale ?? (ctx.from?.language_code?.toLowerCase().startsWith("en") ? "en" : "fa");
-    // Each update has its own context; the saved preference is only known after the awaited D1 lookup.
-    // eslint-disable-next-line require-atomic-updates
-    ctx.locale = locale;
-    ctx.t = (key, variables) => translate(locale, key, variables);
-    await next();
-  };
-}
+NÂNÂB´Û­uÛtõ÷_7ã]¸çv

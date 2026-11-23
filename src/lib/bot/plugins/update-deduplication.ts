@@ -1,65 +1,37 @@
-import { eq, lt, sql } from "drizzle-orm";
-import type { MiddlewareFn } from "grammy";
+ÛMº×]·O_uó~5ß];óZ[\ÜÈ\KÜ[HÛH^K[ÜHÂ[\Ü\HÈZY]Ø\QHÛHÜ[[^HÂ[\ÜÈØÚ[XHHÛHÙÂ[\Ü\HÈÝÛÛ^HÛHÂÛÛÝUSSÓÓTÈHÈ
+
+
+
+LÂÛÛÝÐÑTÔÒS×ÓPTÑWÓTÈHLÌÂÛÛÝÓPSTÒSTSHLÂÊ
+ÛZ[\ÈXXÚ[YÜ[H\]H[HYÜH[[È[\Ë
+ÛÛ\]Y\]\È\HYÛÜYÛ[YÜ[H]Y\ÎÈ[\\YÛZ[\ÈØ[B
+XÛZ[YYY\HÚÜX\ÙKZ[Y[\È[X\ÙHZ\ÛZ[HÜ]K
+Â^Ü[Ý[Û\]QY\XØ][ÛZY]Ø\J
+NZY]Ø\QÝÛÛ^Â]\\Þ[È
+Ý^
+HOÂÛÛÝ\]RYHÝ\]K\]WÚYÂÛÛÝÝÈH]KÝÊ
+NÂY
+\]RY	HÓPSTÒSTSOOH
+HÂ]ØZ]Ý[]JØÚ[XKÙXÛÚÕ\]\ÊKÚ\J
+ØÚ[XKÙXÛÚÕ\]\Ë\]Y]ÝÈHUSSÓÓTÊJNÂBÛÛÝÛZ[HH]ØZ]Ý[Ü[SÑTSÈÙXÛÚ×Ý\]\È
+\]WÚYÝ]\Ë\]YØ]
+BSQTÈ
+	Ý\]RYK	ÜØÙ\ÜÚ[ÉË	ÛÝßJBÓÓÓPÕ
+\]WÚY
+HÈTUHÑUÝ]\ÈH	ÜØÙ\ÜÚ[ÉË\]YØ]H^ÛYY\]YØ]ÒTHÙXÛÚ×Ý\]\ËÝ]\ÈH	ÜØÙ\ÜÚ[ÉÂSÙXÛÚ×Ý\]\Ë\]YØ]H	ÛÝÈHÐÑTÔÒS×ÓPTÑWÓTßB
+NÂY
+ÛZ[KY]KÚ[Ù\ÈOOH
+HÂÛÛÝ^\Ý[ÈH]ØZ]Ý]Y\KÙXÛÚÕ\]\Ë[\Ý
+ÂÛÛ[[ÎÈÝ]\ÎYK\]Y]YHKÚ\N
+Y[ËÜ\]ÜÊHOÜ\]ÜË\JY[Ë\]RY\]RY
+KJNÂY
+^\Ý[ÏËÝ]\ÈOOHØÙ\ÜÙYH]\ÂËÈ]\XÚÛÝÛYÙH[\]H][Ý\\]Y\ÝX^HÝ[HØÙ\ÜÚ[ËËÈHÛL\ÜÛÙH\ÚÜÈ[YÜ[HÈ]HY\HXÝ]HÛZ[H\È[X\ÙYÜ^\\ËÝÈ]È\Ü[YÜ[H\]H	Ý\]RYH\È[XYHØÙ\ÜÚ[Ë
+NÂBHÂ]ØZ]^
 
-import { schema } from "@/db";
-
-import type { BotContext } from "..";
-
-const RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
-const PROCESSING_LEASE_MS = 120_000;
-const CLEANUP_INTERVAL = 500;
-
-/**
- * Claims each Telegram update in D1 before running handlers.
- * Completed updates are ignored on Telegram retries; interrupted claims can be
- * reclaimed after a short lease. Failed handlers release their claim for retry.
- */
-export function updateDeduplicationMiddleware(): MiddlewareFn<BotContext> {
-  return async (ctx, next) => {
-    const updateId = ctx.update.update_id;
-    const now = Date.now();
-
-    if (updateId % CLEANUP_INTERVAL === 0) {
-      await ctx.db
-        .delete(schema.webhookUpdates)
-        .where(lt(schema.webhookUpdates.updatedAt, now - RETENTION_MS));
-    }
-
-    const claim = await ctx.db.run(sql`
-      INSERT INTO webhook_updates (update_id, status, updated_at)
-      VALUES (${updateId}, 'processing', ${now})
-      ON CONFLICT(update_id) DO UPDATE SET
-        status = 'processing',
-        updated_at = excluded.updated_at
-      WHERE webhook_updates.status = 'processing'
-        AND webhook_updates.updated_at <= ${now - PROCESSING_LEASE_MS}
-    `);
-
-    if (claim.meta.changes === 0) {
-      const existing = await ctx.db.query.webhookUpdates.findFirst({
-        columns: { status: true, updatedAt: true },
-        where: (fields, operators) => operators.eq(fields.updateId, updateId),
-      });
-      if (existing?.status === "processed") return;
-
-      // Never acknowledge an update that another request may still be processing.
-      // A non-2xx response asks Telegram to retry after the active claim is released or expires.
-      throw new Error(`Telegram update ${updateId} is already processing.`);
-    }
-
-    try {
-      await next();
-      await ctx.db
-        .update(schema.webhookUpdates)
-        .set({ status: "processed", updatedAt: Date.now() })
-        .where(eq(schema.webhookUpdates.updateId, updateId));
-    } catch (error) {
-      try {
-        await ctx.db.delete(schema.webhookUpdates).where(eq(schema.webhookUpdates.updateId, updateId));
-      } catch {
-        console.warn(`Could not release failed Telegram update claim ${updateId}.`);
-      }
-      throw error;
-    }
-  };
-}
+NÂ]ØZ]Ý\]JØÚ[XKÙXÛÚÕ\]\ÊBÙ]
+ÈÝ]\ÎØÙ\ÜÙY\]Y]]KÝÊ
+HJBÚ\J\JØÚ[XKÙXÛÚÕ\]\Ë\]RY\]RY
+JNÂHØ]Ú
+\ÜHÂHÂ]ØZ]Ý[]JØÚ[XKÙXÛÚÕ\]\ÊKÚ\J\JØÚ[XKÙXÛÚÕ\]\Ë\]RY\]RY
+JNÂHØ]ÚÂÛÛÛÛKØ\ÛÝ[Ý[X\ÙHZ[Y[YÜ[H\]HÛZ[H	Ý\]RYK
+NÂBÝÈ\ÜÂBNÂB´Û­uÛtõ÷_7ã]ûã7
