@@ -4,7 +4,6 @@ import type { BotCommandScope } from "grammy/types";
 import type { BotContext } from "@/lib/bot";
 
 import { groupMembershipHandler } from "./admin/group-membership";
-import { panelCloseHandler } from "./panel";
 import { resetStatsCallbacks, resetStatsHandler } from "./admin/resetstats";
 import { setCooldownHandler } from "./admin/setcooldown";
 import { adminStatusCallbacks, adminStatusHandler, adminStatusHyphenAlias } from "./admin/status";
@@ -20,6 +19,7 @@ import { languageCallbacks, languageHandler } from "./static/language";
 import { privacyHandler } from "./static/privacy";
 import { sourceHandler } from "./static/source";
 import { startHandler } from "./static/start";
+import { panelCloseHandler } from "./panel";
 
 export type Handler = CallbackQueryHandler | CommandHandler | MessageHandler | UpdateHandler;
 

@@ -3,11 +3,11 @@ import type { Message } from "grammy/types";
 import { eq } from "drizzle-orm";
 import { GrammyError, InlineKeyboard } from "grammy";
 
-import { schema } from "@/db";
 import type { CallbackQueryHandler, CommandHandler } from "@/handlers";
 import type { BotContext } from "@/lib/bot";
 import type { GroupPatch } from "@/lib/utils";
 
+import { schema } from "@/db";
 import { isAdmin } from "@/lib/bot";
 import { getLegacyMediaId, getSendableMediaIds, matchesStoredMediaId } from "@/lib/file-id/storage";
 import { saveGroup } from "@/lib/utils";
@@ -203,16 +203,11 @@ async function showMissingMedia(ctx: BotContext, message: CallbackMessageReferen
   });
 }
 
-async function applyChoice(ctx: BotContext) {
-  const callback = ctx.callbackQuery;
-  if (!callback?.message || !ctx.chat || !(await ownerOrGroupAdmin(ctx))) return;
-
-  const promptMessage = callback.message;
-  const target = "reply_to_message" in promptMessage ? promptMessage.reply_to_message : undefined;
-  const media = mediaFromMessage(target);
-  if (!media) return await showMissingMedia(ctx, promptMessage);
-
-  const action = actionFromCallback(callback.data);
+async function persistMediaAction(
+  ctx: BotContext,
+  media: Omit<Media, "bucket">,
+  action: Action | null,
+): Promise<boolean> {
   const group = await loadGroup(ctx);
   const legacyId = getLegacyMediaId(media.fileId);
   const clownBucket = bucketFor(media.kind, "clown");
@@ -222,40 +217,51 @@ async function applyChoice(ctx: BotContext) {
   const targetIds = action === "clown" ? clownIds : unclownIds;
   const alreadyExists = action !== null && hasMatch(targetIds, media.fileId, legacyId);
 
-  if (mediaLimitReached(action, alreadyExists, targetIds)) {
+  if (mediaLimitReached(action, alreadyExists, targetIds)) return false;
+
+  const next = updatedMediaLists({ action, media, clownIds, unclownIds, legacyId });
+  await saveBuckets(ctx, {
+    [clownBucket]: next.clownIds.length ? next.clownIds : null,
+    [unclownBucket]: next.unclownIds.length ? next.unclownIds : null,
+  });
+
+  return true;
+}
+
+async function closeTriggerPrompt(ctx: BotContext, message: CallbackMessageReference): Promise<void> {
+  try {
+    await ctx.api.deleteMessage(message.chat.id, message.message_id);
+  } catch {
+    try {
+      await ctx.api.editMessageReplyMarkup(message.chat.id, message.message_id, new InlineKeyboard());
+    } catch {
+      // The previous selector may already be gone.
+    }
+  }
+}
+
+async function applyChoice(ctx: BotContext) {
+  const callback = ctx.callbackQuery;
+  if (!callback?.message || !ctx.chat) return;
+  if (!(await ownerOrGroupAdmin(ctx))) return;
+
+  const promptMessage = callback.message;
+  const target = "reply_to_message" in promptMessage ? promptMessage.reply_to_message : undefined;
+  const media = mediaFromMessage(target);
+  if (!target || !media) return await showMissingMedia(ctx, promptMessage);
+
+  const action = actionFromCallback(callback.data);
+  const saved = await persistMediaAction(ctx, media, action);
+
+  if (!saved) {
     return await ctx.answerCallbackQuery({
       text: ctx.t("trigger_limit", { max: MAX_PER_KIND }),
       show_alert: true,
     });
   }
 
-  const next = updatedMediaLists({
-    action,
-    media,
-    clownIds,
-    unclownIds,
-    legacyId,
-  });
-  await saveBuckets(ctx, {
-    [clownBucket]: next.clownIds.length ? next.clownIds : null,
-    [unclownBucket]: next.unclownIds.length ? next.unclownIds : null,
-  });
-
-  await ctx.answerCallbackQuery({
-    text: ctx.t(action ? "trigger_saved" : "trigger_removed"),
-  });
-
-  try {
-    await ctx.api.deleteMessage(promptMessage.chat.id, promptMessage.message_id);
-  } catch {
-    try {
-      await ctx.api.editMessageReplyMarkup(promptMessage.chat.id, promptMessage.message_id, {
-        reply_markup: new InlineKeyboard(),
-      });
-    } catch {
-      // The previous selector may already be gone.
-    }
-  }
+  await ctx.answerCallbackQuery({ text: ctx.t(action ? "trigger_saved" : "trigger_removed") });
+  await closeTriggerPrompt(ctx, promptMessage);
 
   return await ctx.api.sendRichMessage(promptMessage.chat.id, promptBlocks(ctx, media.kind, action), {
     reply_parameters: {
@@ -373,6 +379,26 @@ async function removeTrackedPreviewMessage(
   await writeTrackedPreviewIds(ctx, key, ids.filter((id) => id !== messageId));
 }
 
+async function sendTriggerPreview(
+  ctx: BotContext,
+  entry: { kind: MediaKind; fileId: string },
+  keyboard: InlineKeyboard,
+) {
+  try {
+    if (entry.kind === "animation") {
+      return await ctx.replyWithAnimation(entry.fileId, { reply_markup: keyboard });
+    }
+
+    return await ctx.replyWithSticker(entry.fileId, { reply_markup: keyboard });
+  } catch (error) {
+    if (!(error instanceof GrammyError)) throw error;
+
+    return await ctx.richReply(ctx.t("triggers_no_preview", { media: entry.kind }), {
+      reply_markup: keyboard,
+    });
+  }
+}
+
 async function listTriggers(ctx: BotContext) {
   const message = ctx.msg;
   if (!message) return;
@@ -388,25 +414,14 @@ async function listTriggers(ctx: BotContext) {
   const previewMessageIds: number[] = [];
 
   for (const entry of entries) {
-    const callbackData = deleteCallback(entry.bucket, entry.fileId);
     const keyboard = new InlineKeyboard();
+    const callbackData = deleteCallback(entry.bucket, entry.fileId);
     if (callbackData) keyboard.text(ctx.t("triggers_btn_delete", { action: entry.action }), callbackData);
     keyboard.text(ctx.t("panel_close"), "panel:close");
 
-    try {
-      const sent =
-        entry.kind === "animation"
-          ? await ctx.replyWithAnimation(entry.fileId, { reply_markup: keyboard })
-          : await ctx.replyWithSticker(entry.fileId, { reply_markup: keyboard });
-      previewMessageIds.push(sent.message_id);
-    } catch (error) {
-      if (!(error instanceof GrammyError)) throw error;
-
-      const sent = await ctx.richReply(ctx.t("triggers_no_preview", { media: entry.kind }), {
-        reply_markup: keyboard,
-      });
-      previewMessageIds.push(sent.message_id);
-    }
+    // eslint-disable-next-line no-await-in-loop -- Keep each preview beside its matching action button.
+    const sent = await sendTriggerPreview(ctx, entry, keyboard);
+    previewMessageIds.push(sent.message_id);
   }
 
   const summary = await ctx.reply(ctx.t("cmd_triggers_summary", { count: entries.length }), {

@@ -101,7 +101,11 @@ export async function respondToClownCooldown(ctx: BotContext, data: Data, expire
   try {
     const member = await ctx.api.getChatMember(group.id, voter.id);
 
-    if (member.status === "member" && group.type === "supergroup" && expiresAt - Date.now() > MIN_RESTRICTION_SECONDS * 1000) {
+    if (
+      member.status === "member" &&
+      group.type === "supergroup" &&
+      expiresAt - Date.now() > MIN_RESTRICTION_SECONDS * 1000
+    ) {
       const botMember = await ctx.api.getChatMember(group.id, ctx.meId);
 
       if (botMember.status === "administrator" && botMember.can_restrict_members) {

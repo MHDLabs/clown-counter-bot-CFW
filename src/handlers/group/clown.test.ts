@@ -35,14 +35,17 @@ function createContext(options: { targetStatus?: string; botCanRestrict?: boolea
 }
 
 describe("clown cooldown escalation", () => {
-  it.each(["creator", "administrator"])("uses the fixed upstream cooldown text for a group %s", async (targetStatus) => {
-    const { ctx, data, restrictChatMember, richReply } = createContext({ targetStatus });
+  it.each(["creator", "administrator"])(
+    "uses the fixed upstream cooldown text for a group %s",
+    async (targetStatus) => {
+      const { ctx, data, restrictChatMember, richReply } = createContext({ targetStatus });
 
-    await respondToClownCooldown(ctx, data, expiresAt);
+      await respondToClownCooldown(ctx, data, expiresAt);
 
-    expect(restrictChatMember).not.toHaveBeenCalled();
-    expect(richReply.mock.calls[0]?.[0]).toBe("cmd_clown_wait");
-  });
+      expect(restrictChatMember).not.toHaveBeenCalled();
+      expect(richReply.mock.calls[0]?.[0]).toBe("cmd_clown_wait");
+    },
+  );
 
   it("does not attempt a mute if the bot lacks restrict_members permission", async () => {
     const { ctx, data, restrictChatMember, richReply } = createContext({ botCanRestrict: false });
