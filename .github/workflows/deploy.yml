@@ -27,6 +27,10 @@ jobs:
           node-version: 22
       - run: corepack enable
       - run: pnpm install --frozen-lockfile
+      - name: Emit final formatted D1 test source
+        shell: bash
+        run: |
+          pnpm exec prettier scripts/test-d1-concurrency.mjs | base64 -w0
       - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm typecheck
