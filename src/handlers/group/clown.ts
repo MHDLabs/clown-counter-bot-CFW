@@ -24,11 +24,13 @@ function displayName(user: User): string {
   return user.last_name ? `${user.first_name} ${user.last_name}` : user.first_name;
 }
 
-function getData(ctx: BotContext): Data | null {
+export function getData(ctx: BotContext): Data | null {
   if (!ctx.message) return null;
 
   const voter = ctx.message.from;
-  const clown = ctx.message.reply_to_message?.from;
+  const replied = ctx.message.reply_to_message;
+  // Forum topic creation service messages are not a member and cannot receive a vote.
+  const clown = replied?.forum_topic_created ? undefined : replied?.from;
   if (!clown || !voter) return null;
 
   return {

@@ -65,6 +65,13 @@ async function denyResetStats(ctx: BotContext) {
   const { callbackQuery } = ctx;
   if (!callbackQuery?.message) return;
 
+  if (!(await isAdmin(ctx))) {
+    return await ctx.answerCallbackQuery({
+      text: ctx.t("cmd_resetstats_not_admin"),
+      show_alert: true,
+    });
+  }
+
   await ctx.answerCallbackQuery();
 
   return await ctx.editRichMessage({

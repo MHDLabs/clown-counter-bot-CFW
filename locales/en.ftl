@@ -142,7 +142,7 @@ help_text_triggers = Text triggers are exact standalone words (extra spaces or e
 help_vote_footer = Every vote must be sent as a reply to the target member's message.
 help_group_heading = Group statistics
 help_stats = /stats — show this group's score table.
-help_clown_of_day = /clownoftheday — randomly choose the clown of the day once per UTC day and add 5–20 votes.
+help_clown_of_day = /clownoftheday — randomly choose the clown of the day once per Tehran calendar day and add 5–20 votes.
 help_group_footer = Statistics and settings are separate for each group.
 help_personal_heading = Personal stats in this group
 help_personal_self = /mystats — view your current-period score, added points, and removed points in this group.
@@ -152,8 +152,8 @@ help_admin_heading = Group settings
 help_admin_intro = Group administrators and designated bot administrators can use these commands in groups. The bot must be able to check Telegram administrator status.
 help_set_cooldown = /setcooldown minutes — set the vote cooldown to 0–60 minutes (default: 10).
 help_reset_stats = /resetstats — start a new statistics period; stored vote history is kept.
-help_custom_clown_media = Clown media: reply to a GIF/animation with /setgif, or to a sticker with /setsticker. Remove them with /removegif or /removesticker. Up to 3 of each type. Send all saved GIFs with /clowngifs or all stickers with /clownstickers.
-help_custom_unclown_media = Unclown media: reply to a GIF/animation with /setunclowngif, or to a sticker with /setunclownsticker. Remove them with /removeunclowngif or /removeunclownsticker. Up to 3 of each type. To use saved media, reply to the target member with it.
+help_custom_clown_media = Reply to a GIF/animation or sticker with /trigger, then choose whether it adds or removes a clown point. Use /triggers to list, remove, or clear saved media. Up to 3 GIFs and 3 stickers per action.
+help_custom_unclown_media = The same /trigger command configures media for both clown and unclown actions. To use saved media, reply to the target member with the GIF or sticker.
 help_private_heading = Private chat
 help_language = /language — save your reply language (English or فارسی).
 help_privacy_source = /privacy — data storage. /source — source code. /start — introduction.
@@ -205,3 +205,35 @@ admin_creator = Project creator: { $creator }
 admin_whitelist_needs_group = Add at least one group to the allowlist before enabling whitelist mode.
 admin_group_not_active = Telegram confirms that the bot is no longer a member of this group. Re-add it before allowlisting.
 admin_error = The panel could not be loaded. Please try again shortly.
+
+
+cmd_stats_group_page = Page { $current } of { $total }
+
+# Custom GIF/sticker triggers
+cmd_trigger_usage = Reply to a GIF, animation, or sticker with /trigger.
+cmd_trigger_prompt = Choose what { $media } should do. Current action: { $state }.
+cmd_triggers_empty = No custom GIFs or stickers have been configured in this group.
+cmd_triggers_summary = Saved media: { $count }. Use the buttons on each item to remove it, or clear all.
+
+trigger_media_animation = this GIF/animation
+trigger_media_sticker = this sticker
+trigger_state_clown = add a clown point
+trigger_state_unclown = remove a clown point
+trigger_state_unset = not configured
+trigger_btn_clown = 🤡 Clown
+trigger_btn_unclown = 😇 Unclown
+trigger_btn_remove = Remove action
+trigger_btn_delete = 🗑 Remove
+trigger_btn_clear = Clear all
+trigger_clear_yes = ✅ Clear
+trigger_clear_no = Cancel
+trigger_clear_confirm = Remove every saved GIF and sticker from this group?
+trigger_cleared = All custom media triggers were removed.
+trigger_clear_cancelled = Clear operation cancelled.
+trigger_not_admin = Only group administrators can change custom media.
+trigger_missing_media = The replied GIF or sticker is no longer available in this message.
+trigger_limit = The limit is { $max } media items for this action and media type.
+trigger_saved = Custom media action saved.
+trigger_removed = Custom media action removed.
+trigger_not_found = This saved media trigger could not be found.
+trigger_stale_media = A saved { $media } could not be previewed. You can still remove it with the button.

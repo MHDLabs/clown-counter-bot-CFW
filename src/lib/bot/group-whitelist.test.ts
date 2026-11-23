@@ -13,6 +13,7 @@ function createContext(options: {
   enabled?: boolean;
   allowed?: boolean;
   membershipUpdate?: boolean;
+  migrationUpdate?: boolean;
   fail?: boolean;
 }) {
   const selectedTables: unknown[] = [];
@@ -39,6 +40,7 @@ function createContext(options: {
   const ctx = {
     chat: { id: -100123, type: options.chatType ?? "supergroup" },
     update: options.membershipUpdate ? { my_chat_member: {} } : { message: {} },
+    msg: options.migrationUpdate ? { migrate_to_chat_id: -100999 } : undefined,
     db,
   } as unknown as BotContext;
   return { ctx, selectedTables };
@@ -85,6 +87,16 @@ describe("group allowlist middleware", () => {
 
   it("records membership-change updates even when whitelist mode is enabled", async () => {
     const { ctx, selectedTables } = createContext({ enabled: true, membershipUpdate: true });
+    const next = vi.fn().mockResolvedValue(undefined);
+
+    await groupWhitelistMiddleware(ctx, next);
+
+    expect(next).toHaveBeenCalledExactlyOnceWith();
+    expect(selectedTables).toHaveLength(0);
+  });
+
+  it("allows migration service messages through so persisted group data can be moved", async () => {
+    const { ctx, selectedTables } = createContext({ enabled: true, migrationUpdate: true });
     const next = vi.fn().mockResolvedValue(undefined);
 
     await groupWhitelistMiddleware(ctx, next);

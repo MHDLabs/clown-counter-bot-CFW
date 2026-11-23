@@ -354,7 +354,7 @@ help_text_triggers = واکنش به 🤡 / دلقک، 😇 / ستون / آدم 
 help_vote_footer = هر رأی باید در پاسخ به پیام عضو هدف فرستاده شود.
 help_group_heading = آمار گروه
 help_stats = /stats — نمایش جدول امتیازهای همین گروه.
-help_clown_of_day = /clownoftheday — انتخاب تصادفی دلقک روز؛ روزی یک‌بار بر اساس UTC و با ۵ تا ۲۰ رأی اضافه.
+help_clown_of_day = /clownoftheday — انتخاب تصادفی دلقک روز؛ روزی یک‌بار بر اساس تقویم تهران و با ۵ تا ۲۰ رأی اضافه.
 help_group_footer = آمار و تنظیمات هر گروه مستقل است.
 help_personal_heading = آمار شخصی در گروه
 help_personal_self = /mystats — دیدن امتیاز، امتیازهای اضافه‌شده و امتیازهای کم‌شدهٔ خودتان در همین گروه.
@@ -365,7 +365,7 @@ help_admin_intro = مدیران گروه و مدیران تعیین‌شدهٔ �
 help_set_cooldown = /setcooldown <دقیقه> — تنظیم مهلت رأی از ۰ تا ۶۰ دقیقه؛ پیش‌فرض ۱۰.
 help_reset_stats = /resetstats — شروع دورهٔ تازهٔ آمار؛ سابقهٔ رأی‌ها حذف نمی‌شود.
 help_custom_clown_media = رسانهٔ دلقک‌کردن: روی گیف/انیمیشن ریپلای کنید و /setgif بفرستید؛ برای استیکر از /setsticker استفاده کنید. حذف: /removegif یا /removesticker. از هر نوع حداکثر ۳ مورد. همهٔ گیف‌ها را با /clowngifs و همهٔ استیکرها را با /clownstickers بفرستید.
-help_custom_unclown_media = رسانهٔ کم‌کردن امتیاز: روی گیف/انیمیشن ریپلای کنید و /setunclowngif بفرستید؛ برای استیکر از /setunclownsticker استفاده کنید. حذف: /removeunclowngif یا /removeunclownsticker. از هر نوع حداکثر ۳ مورد. برای اجرا، رسانهٔ ثبت‌شده را در پاسخ به پیام عضو هدف بفرستید.
+help_custom_unclown_media = همان دستور /trigger برای هر دو عملیات دلقک‌کردن و کم‌کردن امتیاز استفاده می‌شود. برای اجرای رسانهٔ ذخیره‌شده، آن را در پاسخ به پیام عضو هدف بفرستید.
 help_private_heading = گفت‌وگوی خصوصی
 help_language = /language — ذخیرهٔ زبان پاسخ‌ها (فارسی یا English).
 help_privacy_source = /privacy — جزئیات داده‌ها. /source — کد منبع. /start — معرفی ربات.
@@ -420,3 +420,35 @@ admin_creator = سازندهٔ پروژه: { $creator }
 admin_whitelist_needs_group = پیش از فعال‌کردن whitelist، دست‌کم یک گروه را به فهرست مجاز اضافه کنید.
 admin_group_not_active = تلگرام تأیید می‌کند که ربات دیگر عضو این گروه نیست. برای افزودن آن به whitelist، ابتدا ربات را دوباره به گروه اضافه کنید.
 admin_error = بارگذاری پنل انجام نشد. کمی بعد دوباره تلاش کنید.
+
+
+cmd_stats_group_page = صفحهٔ { $current } از { $total }
+
+# رسانه‌های سفارشی و محرک‌ها
+cmd_trigger_usage = روی یک گیف، انیمیشن یا استیکر ریپلای کنید و دستور /trigger را بفرستید.
+cmd_trigger_prompt = انتخاب کنید { $media } چه کاری انجام دهد. عملیات فعلی: { $state }.
+cmd_triggers_empty = هنوز هیچ گیف یا استیکر سفارشی برای این گروه تنظیم نشده است.
+cmd_triggers_summary = رسانه‌های ذخیره‌شده: { $count }. برای حذف هر مورد از دکمهٔ خودش استفاده کنید یا همه را پاک کنید.
+
+trigger_media_animation = این گیف/انیمیشن
+trigger_media_sticker = این استیکر
+trigger_state_clown = اضافه‌کردن امتیاز دلقکی
+trigger_state_unclown = کم‌کردن امتیاز دلقکی
+trigger_state_unset = تنظیم‌نشده
+trigger_btn_clown = 🤡 دلقک
+trigger_btn_unclown = 😇 کم‌کردن امتیاز
+trigger_btn_remove = حذف عملیات
+trigger_btn_delete = 🗑 حذف
+trigger_btn_clear = حذف همه
+trigger_clear_yes = ✅ پاک کن
+trigger_clear_no = لغو
+trigger_clear_confirm = تمام گیف‌ها و استیکرهای سفارشی این گروه حذف شوند؟
+trigger_cleared = تمام محرک‌های رسانه‌ای سفارشی حذف شدند.
+trigger_clear_cancelled = عملیات حذف همه لغو شد.
+trigger_not_admin = فقط مدیران گروه می‌توانند رسانه‌های سفارشی را تغییر دهند.
+trigger_missing_media = گیف یا استیکر پاسخ‌داده‌شده در این پیام در دسترس نیست.
+trigger_limit = برای هر عملیات و نوع رسانه حداکثر { $max } مورد مجاز است.
+trigger_saved = عملیات رسانهٔ سفارشی ذخیره شد.
+trigger_removed = عملیات رسانهٔ سفارشی حذف شد.
+trigger_not_found = این رسانهٔ ذخیره‌شده پیدا نشد.
+trigger_stale_media = پیش‌نمایش { $media } ذخیره‌شده ممکن نشد؛ با این حال می‌توانید آن را با دکمه حذف کنید.

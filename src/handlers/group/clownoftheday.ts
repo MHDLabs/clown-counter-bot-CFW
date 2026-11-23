@@ -4,6 +4,7 @@ import type { CommandHandler } from "@/handlers";
 import type { BotContext } from "@/lib/bot";
 
 import { schema } from "@/db";
+import { dayBoundsInTimeZone } from "@/lib/date";
 
 const MIN_QUANTITY = 5;
 const MAX_QUANTITY = 20;
@@ -14,7 +15,7 @@ async function clownOfTheDay(ctx: BotContext) {
 
   const groupId = message.chat.id;
 
-  // Candidates: users who ever appeared in this group's clown_votes (as voter or clown).
+  // Candidates are members who have received at least one clown vote in this group.
   const rows = await ctx.db
     .selectDistinct({ id: schema.users.id, name: schema.users.name })
     .from(schema.clownVotes)
@@ -31,11 +32,11 @@ async function clownOfTheDay(ctx: BotContext) {
   const quantity = MIN_QUANTITY + Math.floor(Math.random() * (MAX_QUANTITY - MIN_QUANTITY + 1));
 
   const now = new Date();
-  const dayStart = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const { start: dayStart, end: dayEnd } = dayBoundsInTimeZone(now);
   const inserted = await ctx.db.run(sql`INSERT INTO clown_votes (group_id, voter_id, clown_id, voted_at, quantity)
     SELECT ${String(groupId)}, NULL, ${clown.id}, ${now.getTime()}, ${quantity}
     WHERE NOT EXISTS (SELECT 1 FROM clown_votes WHERE group_id = ${String(groupId)} AND voter_id IS NULL
-      AND voted_at >= ${dayStart} AND voted_at < ${dayStart + 86_400_000})`);
+      AND voted_at >= ${dayStart} AND voted_at < ${dayEnd})`);
 
   if (inserted.meta.changes === 0) {
     return await ctx.richReply(ctx.t("cmd_clown_of_the_day_wait"), {
