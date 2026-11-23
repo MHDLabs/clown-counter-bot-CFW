@@ -59,8 +59,8 @@ function createContext(options: {
         onConflictDoNothing: () => query,
         returning: async () => {
           if (table !== schema.botSettings) return [];
-          if (noticeValues.has(row.key ?? "")) return [];
-          noticeValues.set(row.key ?? "", row.value ?? "");
+          if (noticeValues.has(row["key"] ?? "")) return [];
+          noticeValues.set(row["key"] ?? "", row["value"] ?? "");
           return [{ key: row.key }];
         },
       };

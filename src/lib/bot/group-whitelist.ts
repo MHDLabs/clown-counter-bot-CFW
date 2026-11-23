@@ -208,11 +208,16 @@ export async function notifyUnallowlistedGroups(ctx: BotContext, epoch: number):
   const batches = Array.from({ length: Math.ceil(targets.length / 5) }, (_, index) =>
     targets.slice(index * 5, index * 5 + 5),
   );
-  const results = await Promise.all(
-    batches.map((batch) => Promise.all(batch.map((group) => notifyGroupIfActive(ctx, group, epoch)))),
+  const results = await batches.reduce<Promise<boolean[]>>(
+    (previousResults, batch) =>
+      previousResults.then(async (previous) => [
+        ...previous,
+        ...(await Promise.all(batch.map((group) => notifyGroupIfActive(ctx, group, epoch)))),
+      ]),
+    Promise.resolve([]),
   );
 
-  return results.flat().filter(Boolean).length;
+  return results.filter(Boolean).length;
 }
 
 function isGroupChat(ctx: BotContext): boolean {
