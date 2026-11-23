@@ -268,6 +268,16 @@ async function applyChoice(ctx: BotContext) {
   });
 }
 
+export function removeStoredMediaIds(values: readonly string[], legacyId: string): string[] {
+  return values.filter((storedId) => {
+    const isLegacyId =
+      storedId.length > 0 &&
+      [...storedId].every((character) => character >= "0" && character <= "9");
+    const storedLegacyId = isLegacyId ? storedId : getLegacyMediaId(storedId);
+    return storedLegacyId !== legacyId;
+  });
+}
+
 export function listEntries(group: GroupMedia | undefined): {
   bucket: Bucket;
   kind: MediaKind;
@@ -352,7 +362,7 @@ async function deleteListedTrigger(ctx: BotContext) {
   const legacyId = match[2];
   const group = await loadGroup(ctx);
   const current = valuesFor(group, bucket);
-  const updated = current.filter((storedId) => !matchesStoredMediaId(storedId, "", legacyId));
+  const updated = removeStoredMediaIds(current, legacyId);
 
   if (updated.length === current.length) {
     return await ctx.answerCallbackQuery({
