@@ -122,14 +122,7 @@ function localDateParts(date, timeZone) {
 /** @param {number} instant @param {string} timeZone @returns {number} */
 function timezoneOffsetAt(instant, timeZone) {
   const parts = localDateParts(new Date(instant), timeZone);
-  const localAsUtc = Date.UTC(
-    parts.year,
-    parts.month - 1,
-    parts.day,
-    parts.hour,
-    parts.minute,
-    parts.second,
-  );
+  const localAsUtc = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second);
   return localAsUtc - instant;
 }
 
