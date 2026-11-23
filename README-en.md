@@ -28,6 +28,7 @@ A Persian/English Telegram group bot for fun: clown voting, group statistics, cu
 - `/clown`: Increase the replied member's clown score
 - `/unclown`: Decrease the replied member's clown score
 - `/stats`: Show group statistics
+- In groups, you can target the bot explicitly, for example `/stats@MHDLabs_clownbot`.
 - `/mystats`: Show your stats; reply to a member to view theirs
 - `/clownoftheday`: Pick the clown of the Tehran calendar day
 - `/trigger`: Configure a GIF, animation, or sticker with interactive action buttons
