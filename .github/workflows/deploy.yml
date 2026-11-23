@@ -27,10 +27,6 @@ jobs:
           node-version: 22
       - run: corepack enable
       - run: pnpm install --frozen-lockfile
-      - name: Inspect canonical formatting
-        run: |
-          pnpm exec prettier --write src/handlers/admin/triggers.ts src/handlers/group/clown.test.ts src/handlers/group/clown.ts
-          git diff -- src/handlers/admin/triggers.ts src/handlers/group/clown.test.ts src/handlers/group/clown.ts
       - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm typecheck

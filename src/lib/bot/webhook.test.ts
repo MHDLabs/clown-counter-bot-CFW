@@ -196,11 +196,11 @@ describe("grammY Cloudflare webhook", () => {
     const sendRichMessage = calls.find((call) => call.method === "sendRichMessage");
 
     expect(JSON.stringify(sendRichMessage?.payload["rich_message"])).toContain(
-      "github.com/MHDLabs/clown-counter-bot-CFW",
+      "github.com/haashemi/clown-counter-bot",
     );
   });
 
-  it("explains that group /clown requires replying to a target instead of staying silent", async () => {
+  it("stays silent when group /clown has no replied target, matching upstream", async () => {
     const bot = new Bot("123456:fake_token", {
       botId: fakeBotInfo.id,
       database: testDatabase(),
@@ -236,12 +236,7 @@ describe("grammY Cloudflare webhook", () => {
 
     const sendRichMessage = calls.find((call) => call.method === "sendRichMessage");
 
-    expect(JSON.stringify(sendRichMessage?.payload["rich_message"])).toContain("/clown");
-    expect(sendRichMessage?.payload["reply_parameters"]).toMatchObject({
-      message_id: 4,
-      chat_id: -100123,
-      allow_sending_without_reply: true,
-    });
+    expect(sendRichMessage).toBeUndefined();
   });
 
   it("records a Persian clown text trigger sent as a reply through the real webhook handler chain", async () => {
